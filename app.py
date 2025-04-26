@@ -6,12 +6,12 @@ import datetime
 from typing import List
 from PyPDF2 import PdfReader
 from docx import Document
-from dotenv import load_dotenv
+import openai
+import streamlit as st
 import re
 
-# Load environment variables from .env file
-load_dotenv()
-openai.api_key = os.getenv("OPENAI_API_KEY")
+# Load environment variables from Streamlit secret
+openai.api_key = st.secrets["OPENAI_API_KEY"]
 
 st.set_page_config(layout="wide")
 st.title("📘 AI Agent for IT Training Content")
