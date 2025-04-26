@@ -1,0 +1,65 @@
+[Opening Logo Animation]
+
+[Soft Introductory Music Starts]
+
+Narrator (Enthusiastic, yet soothing voice):
+"Welcome to the Intapp Time Desktop User Guide tutorial, where we'll explore the dynamic world of narrative entries! Whether you're a seasoned professional or new to Intapp Time, this guide is designed to help you navigate with ease and efficiency. Let's dive in!"
+
+[Screen displays the Intapp Time Entry Form with a highlight on the Narrative field]
+
+Narrator:
+"To begin, locate the Narrative field on your Entry Form. Here’s a tip: Intapp Time offers multiple narrative features that are just a click away. Simply right-click in the Narrative field to view your options!"
+
+[Cursor right-clicks to display options]
+
+Narrator:
+"These options include handy narrative codes and shortcuts that can substantially streamline your work. And don't worry about space—Intapp Time allows for narratives up to 5,000 characters long."
+
+[Screen transition to: Narrative Codes section]
+
+Narrator:
+"Looking to view your Narrative Codes? It's easy! Click on the Narrative Codes toolbar button or press F5. You can even access these by right-clicking and selecting 'Narrative codes' or pressing Shift+F5."
+
+[Visual demonstration of accessing Narrative Codes]
+
+Narrator:
+"Once you've opened the Narrative Codes window, you can use the scroll bars to browse through your list which includes personal codes, private codes, and firm-wide options. If you need to filter or sort, simply hover over the desired column header and make your selection."
+
+[Scene cuts to the "Narrative Field Right-Click Options" figure]
+
+Narrator:
+"Right-clicking in the Narrative field unlocks further actions like adding to the dictionary, using autocorrect, setting spelling options, and even duplicating fields from previous entries. It's all there for you to customize as you wish."
+
+[Transition to: Narrative Field Toolbar Options]
+
+Narrator:
+"Your Narrative Field Toolbar is a powerful ally. Here, you'll discover options to add, edit, or delete narrative codes. You can also print, import, or export codes for easy sharing and management."
+
+[Switch to: Shorthand Codes]
+
+Narrator:
+"Shorthand Codes are a real time-saver. Simply type a period, followed by the code, and then a space or punctuation mark to expand to commonly-used terms. Imagine how much quicker you'll input 'Telephone conference with' by simply typing '.TC '!"
+
+[Quick animation visualizing the example provided]
+
+Narrator:
+"Adding and editing your personal narrative codes is a breeze. You'll have the freedom to mark them as public or private based on your preference. Remember, personalize your codes to make them work for you!"
+
+[Screen demonstrating adding a new narrative code]
+
+Narrator:
+"If you need to search within your narratives or perform a replace action, Intapp Time’s find and replace feature has got your back. Easily locate specific text and make changes on the fly—without the hassle!"
+
+[Visual aid: Find and Replace window]
+
+Narrator:
+"And finally, for admins and power users, importing and exporting narrative codes is just a few clicks away. These features ensure that everyone on your team has access to the latest updates and codes."
+
+[Closing animation: Exporting and Importing Narrative Codes]
+
+Narrator (Calmly):
+"Thank you for joining this tutorial on Intapp Time's Narrative field! We hope these tips and tricks empower you to work smarter and more efficiently. For further information, refer to the pages detailed in this guide. Until next time, happy narrating!"
+
+[Soft Outroductory Music Fades Out]
+
+[End of Video]
