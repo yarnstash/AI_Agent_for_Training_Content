@@ -1,17 +1,17 @@
-import streamlit as st
+import openai
 import os
 import tempfile
-import openai
+import streamlit as st
 import datetime
-from typing import List
 from PyPDF2 import PdfReader
 from docx import Document
-import openai
-import streamlit as st
-import re
+from dotenv import load_dotenv
+import zipfile
+import io
 
-# Load environment variables from Streamlit secret
-openai.api_key = st.secrets["OPENAI_API_KEY"]
+# Load environment variables from .env file
+load_dotenv()
+openai.api_key = os.getenv("OPENAI_API_KEY")
 
 st.set_page_config(layout="wide")
 st.title("📘 AI Agent for IT Training Content")
@@ -34,6 +34,22 @@ def create_text_file(text, filename):
         f.write(text)
     return temp_path
 
+def create_audio_file(text, filename):
+    speech_file_path = os.path.join(tempfile.gettempdir(), filename)
+    
+    # Use OpenAI's API for TTS (Text to Speech)
+    response = openai.Audio.create(
+        model="text-to-speech", 
+        input=text,
+        voice="en_us_male"  # Adjust voice as needed
+    )
+    
+    # Write the speech to a file
+    with open(speech_file_path, 'wb') as f:
+        f.write(response['audio'])
+    
+    return speech_file_path
+
 if uploaded_file:
     with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_file:
         tmp_file.write(uploaded_file.read())
@@ -45,6 +61,7 @@ if uploaded_file:
         for page in reader.pages:
             full_text += page.extract_text() + "\n"
 
+        import re
         headings = re.findall(r"(?m)^[A-Z][A-Z \-\d]{3,}$", full_text)
         sections = re.split(r"(?m)^[A-Z][A-Z \-\d]{3,}$", full_text)[1:]
 
@@ -59,9 +76,9 @@ if uploaded_file:
         single_btn_col, multi_btn_col = st.columns([1, 1])
 
         run_type = st.session_state.get("run_type", "")
-        if st.button("Create QuickByte"):
+        if single_btn_col.button("Create QuickByte"):
             st.session_state.run_type = "QuickByte"
-        if st.button("Create FastTrack", disabled=len(selected_sections) < 1):
+        if multi_btn_col.button("Create FastTrack", disabled=len(selected_sections) < 1):
             st.session_state.run_type = "FastTrack"
 
         if "run_type" in st.session_state and st.session_state.run_type:
@@ -90,7 +107,7 @@ if uploaded_file:
                     model="gpt-4.1-mini",
                     messages=[
                         {"role": "system", "content": "You are an instructional content expert."},
-                        {"role": "user", "content": f"Generate exactly 5 email tips based on the following training content. Each tip must include the following format:\n\nTip #: <Title>\nFeature:\nBenefit:\nSteps:\n\nOutput each tip as a separate piece, clearly numbered and formatted."},
+                        {"role": "user", "content": f"Generate exactly 5 email tips based on the following training content. Each tip should describe one useful feature, explain its benefit, and provide short step-by-step instructions. Output each as a separate tip, clearly numbered or titled:\n{selected_content}"},
                     ]
                 )
 
@@ -98,58 +115,64 @@ if uploaded_file:
                 script_text = script_response.choices[0].message.content
                 tips_text = tips_response.choices[0].message.content
 
-                # Parse the tips
-                tips = []
-                tip_pattern = r"(Tip \d+: .+?)(?=\nTip \d+:|\Z)"
-                matches = re.findall(tip_pattern, tips_text, re.DOTALL)
-
-                # If fewer than 5 tips are generated, retry the generation
-                while len(matches) < 5:
-                    st.warning("Insufficient tips generated. Regenerating...")
-                    tips_response = openai.chat.completions.create(
-                        model="gpt-4.1-mini",
-                        messages=[
-                            {"role": "system", "content": "You are an instructional content expert."},
-                            {"role": "user", "content": f"Generate exactly 5 email tips based on the following training content. Each tip must include the following format:\n\nTip #: <Title>\nFeature:\nBenefit:\nSteps:\n\nOutput each tip as a separate piece, clearly numbered and formatted."},
-                        ]
-                    )
-                    tips_text = tips_response.choices[0].message.content
-                    matches = re.findall(tip_pattern, tips_text, re.DOTALL)
-
-                tip_files = []
-                for i, tip in enumerate(matches[:5]):
-                    tip_filename = f"email_tip_{i+1}_{timestamp}.docx"
-                    tip_path = create_word_doc(tip.strip(), tip_filename)
-                    tip_files.append((f"Email Tip {i+1}", tip.strip(), tip_path))
-
                 outline_file = create_word_doc(outline_text, f"class_outline_{timestamp}.docx")
                 script_file = create_text_file(script_text, f"narration_script_{timestamp}.txt")
 
+                # Split script into paragraphs
+                paragraphs = script_text.split("\n\n")
+                audio_files = []
+
+                # Generate separate audio files for each paragraph
+                for idx, paragraph in enumerate(paragraphs):
+                    audio_filename = f"narration_paragraph_{idx + 1}_{timestamp}.mp3"
+                    audio_file = create_audio_file(paragraph, audio_filename)
+                    audio_files.append(audio_file)
+
+                import re
+                tips = re.split(r"(?m)^\s*(?:\d+\.\s+|Tip\s+\d+:)", tips_text)
+                tips = [tip.strip() for tip in tips if tip.strip()][:5]
+
+                tip_files = []
+                for i, tip in enumerate(tips):
+                    tip_filename = f"email_tip_{i+1}_{timestamp}.docx"
+                    tip_path = create_word_doc(tip, tip_filename)
+                    tip_files.append((f"Email Tip {i+1}", tip, tip_path))
+
+                zip_buffer = io.BytesIO()
+                with zipfile.ZipFile(zip_buffer, "w") as zipf:
+                    for _, _, path in tip_files:
+                        zipf.write(path, os.path.basename(path))
+                zip_buffer.seek(0)
+
                 st.session_state.generated = True
+                st.session_state.timestamp = timestamp
                 st.session_state.tabs = {
                     "Outline": (outline_text, outline_file),
-                    "Narration": (script_text, script_file),
-                    "Email Tips": (tip_files, None),
+                    "Narration": (script_text, script_file, audio_files),
+                    "Email Tips": (tips, zip_buffer),
                 }
 
-        if st.session_state.get("generated"):
-            # Use actual visual tabs
-            tab_selection = st.selectbox("Select Output to View/Download", options=["Outline", "Narration", "Email Tips"])
+if st.session_state.get("generated"):
+    tabs = st.tabs(["Outline", "Narration", "Email Tips"])
 
-            if tab_selection == "Outline":
-                tab_content, tab_file = st.session_state.tabs["Outline"]
-                st.write(tab_content)
-                with open(tab_file, "rb") as f:
-                    st.download_button(label="Download Class Outline", data=f, file_name=os.path.basename(tab_file))
-            elif tab_selection == "Narration":
-                tab_content, tab_file = st.session_state.tabs["Narration"]
-                st.write(tab_content)
-                with open(tab_file, "rb") as f:
-                    st.download_button(label="Download Narration Script", data=f, file_name=os.path.basename(tab_file))
-            elif tab_selection == "Email Tips":
-                tab_content, _ = st.session_state.tabs["Email Tips"]
-                for tip_title, tip_text, tip_path in tab_content:
-                    with st.expander(tip_title):
-                        st.write(tip_text)
-                        with open(tip_path, "rb") as f:
-                            st.download_button(label=f"Download {tip_title}", data=f, file_name=os.path.basename(tip_path))
+    with tabs[0]:
+        tab_content, tab_file = st.session_state.tabs["Outline"]
+        with open(tab_file, "rb") as f:
+            st.download_button(label="Download Class Outline", data=f, file_name=os.path.basename(tab_file))
+        st.markdown(tab_content)
+
+    with tabs[1]:
+        tab_content, tab_file, audio_files = st.session_state.tabs["Narration"]
+        with open(tab_file, "rb") as f:
+            st.download_button(label="Download Narration Script", data=f, file_name=os.path.basename(tab_file))
+        for audio_file in audio_files:
+            with open(audio_file, "rb") as af:
+                st.download_button(label=f"Download Narration Audio (mp3)", data=af, file_name=os.path.basename(audio_file))
+                st.audio(af.read(), format="audio/mp3")
+        st.markdown(tab_content)
+
+    with tabs[2]:
+        tip_texts, zip_buffer = st.session_state.tabs["Email Tips"]
+        st.download_button("Download All Email Tips", data=zip_buffer, file_name=f"email_tips_{st.session_state.timestamp}.zip")
+        for i, tip in enumerate(tip_texts):
+            st.markdown(f"**Tip {i+1}:** {tip}")
