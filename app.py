@@ -39,13 +39,14 @@ def load_qref_template():
 
 def create_audio_file(text, filename):
     speech_file_path = os.path.join(tempfile.gettempdir(), filename)
-    response = openai.Audio.create(
+    response = openai.audio.speech.create(
         model="tts-1",
         input=text,
-        voice="en_us_male"
+        voice="sage",
+        response_format="mp3"
     )
     with open(speech_file_path, 'wb') as f:
-        f.write(response['audio'])
+        f.write(response.content)
     return speech_file_path
 
 if uploaded_file:
