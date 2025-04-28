@@ -15,7 +15,6 @@ openai.api_key = st.secrets["OPENAI_API_KEY"]
 st.set_page_config(layout="wide")
 st.title("📘 AI Training Content App")
 
-# Upload source file
 uploaded_file = st.file_uploader("Upload a vendor PDF or Quick Reference Word doc", type=["pdf", "docx"])
 
 selected_sections = []
@@ -41,9 +40,9 @@ def load_qref_template():
 def create_audio_file(text, filename):
     speech_file_path = os.path.join(tempfile.gettempdir(), filename)
     response = openai.Audio.create(
-        model="text-to-speech",
+        model="tts-1",
         input=text,
-        voice="en_us_male"  # or 'sage' if you prefer
+        voice="en_us_male"
     )
     with open(speech_file_path, 'wb') as f:
         f.write(response['audio'])
@@ -84,7 +83,7 @@ if uploaded_file:
 
             with st.spinner("Generating content..."):
                 outline_response = openai.chat.completions.create(
-                    model="gpt-4-1-mini",
+                    model="gpt-4.1-mini",
                     messages=[
                         {"role": "system", "content": "You are an expert instructional designer."},
                         {"role": "user", "content": f"Create an outline with learning objectives for a {'15-minute QuickByte' if st.session_state.run_type == 'QuickByte' else '30-minute FastTrack'} instructor-led class based on this:\n{selected_content}"},
@@ -92,7 +91,7 @@ if uploaded_file:
                 )
 
                 script_response = openai.chat.completions.create(
-                    model="gpt-4-1-mini",
+                    model="gpt-4.1-mini",
                     messages=[
                         {"role": "system", "content": "You are a professional e-learning narrator."},
                         {"role": "user", "content": f"Write a friendly but professional narration script for a video based on this content:\n{selected_content}"},
@@ -100,7 +99,7 @@ if uploaded_file:
                 )
 
                 tips_response = openai.chat.completions.create(
-                    model="gpt-4-1-mini",
+                    model="gpt-4.1-mini",
                     messages=[
                         {"role": "system", "content": "You are an instructional content expert."},
                         {"role": "user", "content": f"Generate exactly 5 email tips based on the following training content. Each tip should describe one useful feature, explain its benefit, and provide short step-by-step instructions. Output each as a separate tip, clearly numbered or titled:\n{selected_content}"},
@@ -114,7 +113,7 @@ if uploaded_file:
                 outline_file = create_word_doc(outline_text, f"class_outline_{timestamp}.docx")
                 script_file = create_text_file(script_text, f"narration_script_{timestamp}.txt")
 
-                # Split script into paragraphs
+                # Audio file generation
                 paragraphs = script_text.split("\n\n")
                 audio_files = []
                 for idx, paragraph in enumerate(paragraphs):
@@ -122,6 +121,7 @@ if uploaded_file:
                     audio_file = create_audio_file(paragraph, audio_filename)
                     audio_files.append(audio_file)
 
+                # Tips generation
                 tips = re.split(r"(?m)^\s*(?:\d+\.\s+|Tip\s+\d+:)", tips_text)
                 tips = [tip.strip() for tip in tips if tip.strip()][:5]
 
