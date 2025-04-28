@@ -48,6 +48,17 @@ def create_audio_file(text, filename):
     with open(speech_file_path, 'wb') as f:
         f.write(response.content)
     return speech_file_path
+
+def clear_document_after_table(doc):
+    # Only keep the first table and its content; remove everything after it
+    tables = doc.tables
+    if not tables:
+        return
+    last_table_element = tables[0]._element
+    following = list(last_table_element.itersiblings())
+    for element in following:
+        element.getparent().remove(element)
+
 if uploaded_file:
     with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_file:
         tmp_file.write(uploaded_file.read())
@@ -75,6 +86,7 @@ if uploaded_file:
         with col2:
             if st.button("Create FastTrack", disabled=len(selected_sections) < 1):
                 st.session_state.run_type = "FastTrack"
+
         if "run_type" in st.session_state and st.session_state.run_type:
             selected_indices = [int(s.split(".")[0]) - 1 for s in selected_sections]
             selected_content = "\n\n".join(extracted[i][1] for i in selected_indices)
@@ -111,6 +123,7 @@ if uploaded_file:
 
                 outline_file = create_word_doc(outline_text, f"class_outline_{timestamp}.docx")
                 script_file = create_text_file(script_text, f"narration_script_{timestamp}.txt")
+
                 # Audio generation
                 paragraphs = script_text.split("\n\n")
                 audio_files = []
@@ -135,28 +148,38 @@ if uploaded_file:
                         zipf.write(path, os.path.basename(path))
                 tip_zip.seek(0)
 
-                # Build Full Quick Reference
+                # Build Quick Reference
                 qref_doc = load_qref_template()
-                qref_doc.add_paragraph("Generated Quick Reference Title", style="IT Title")
+                clear_document_after_table(qref_doc)
+
+                # Title extraction
+                class_title = "Training Content"
+                title_lines = outline_text.splitlines()
+                for line in title_lines:
+                    if line.strip():
+                        class_title = line.strip()
+                        break
+
+                qref_doc.add_paragraph(class_title, style="IT Title")
                 qref_doc.add_paragraph("Overview", style="IT Heading 1")
                 qref_doc.add_paragraph("This Quick Reference supports the class learning objectives.", style="Body Text")
 
-                # Insert real sections and steps
+                # Fill with sections and narration
                 for section in outline_text.split("\n"):
-                    if section.strip() and not section.startswith("Learning Objectives"):
+                    if section.strip() and not section.lower().startswith("learning objective"):
                         qref_doc.add_paragraph(section.strip(), style="IT Heading 2")
                         qref_doc.add_paragraph("[Insert Screenshot Here]", style="Body Text")
 
-                # Insert dummy steps (you can expand later if you want real steps from narration)
                 for para in script_text.split("\n\n"):
-                    if para.startswith("TIP:"):
+                    if para.lower().startswith("tip:"):
                         qref_doc.add_paragraph(para.replace("TIP:", "").strip(), style="IT Tip")
-                    elif para.startswith("NOTE:"):
+                    elif para.lower().startswith("note:"):
                         qref_doc.add_paragraph(para.replace("NOTE:", "").strip(), style="IT Note")
                     else:
                         qref_doc.add_paragraph(para.strip(), style="IT Number_1")
 
-                qref_path = os.path.join(tempfile.gettempdir(), f"quick_reference_{timestamp}.docx")
+                qref_filename = f"{class_title} QREF_{timestamp}.docx".replace("|", "-").replace(":", "-").replace("/", "-")
+                qref_path = os.path.join(tempfile.gettempdir(), qref_filename)
                 qref_doc.save(qref_path)
 
                 st.session_state.generated = True
@@ -167,32 +190,3 @@ if uploaded_file:
                     "Email Tips": (tips, tip_zip),
                     "Quick Reference": (qref_path,)
                 }
-if st.session_state.get("generated"):
-    tabs = st.tabs(["Outline", "Narration", "Email Tips", "Quick Reference"])
-
-    with tabs[0]:
-        tab_content, tab_file = st.session_state.tabs["Outline"]
-        with open(tab_file, "rb") as f:
-            st.download_button(label="Download Class Outline", data=f, file_name=os.path.basename(tab_file))
-        st.markdown(tab_content)
-
-    with tabs[1]:
-        tab_content, tab_file, audio_files = st.session_state.tabs["Narration"]
-        with open(tab_file, "rb") as f:
-            st.download_button(label="Download Narration Script", data=f, file_name=os.path.basename(tab_file))
-        for audio_file in audio_files:
-            with open(audio_file, "rb") as af:
-                st.download_button(label=f"Download Narration Audio (mp3)", data=af, file_name=os.path.basename(audio_file))
-                st.audio(af.read(), format="audio/mp3")
-        st.markdown(tab_content)
-
-    with tabs[2]:
-        tip_texts, tip_zip = st.session_state.tabs["Email Tips"]
-        st.download_button("Download All Email Tips", data=tip_zip, file_name=f"email_tips_{st.session_state.timestamp}.zip")
-        for i, tip in enumerate(tip_texts):
-            st.markdown(f"**Tip {i+1}:** {tip}")
-
-    with tabs[3]:
-        qref_path, = st.session_state.tabs["Quick Reference"]
-        with open(qref_path, "rb") as f:
-            st.download_button("Download Quick Reference", data=f, file_name=os.path.basename(qref_path))
