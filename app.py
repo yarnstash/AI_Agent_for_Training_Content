@@ -190,3 +190,52 @@ if uploaded_file:
                     "Email Tips": (tips, tip_zip),
                     "Quick Reference": (qref_path,)
                 }
+if st.session_state.get("generated"):
+    tabs = st.tabs(["Outline", "Narration", "Email Tips", "Quick Reference"])
+
+    with tabs[0]:  # Outline Tab
+        tab_content, tab_file = st.session_state.tabs["Outline"]
+        with open(tab_file, "rb") as f:
+            st.download_button(
+                label="Download Class Outline",
+                data=f,
+                file_name=os.path.basename(tab_file)
+            )
+        st.markdown(tab_content)
+
+    with tabs[1]:  # Narration Tab
+        tab_content, tab_file, audio_files = st.session_state.tabs["Narration"]
+        with open(tab_file, "rb") as f:
+            st.download_button(
+                label="Download Narration Script",
+                data=f,
+                file_name=os.path.basename(tab_file)
+            )
+        for audio_file in audio_files:
+            with open(audio_file, "rb") as af:
+                st.download_button(
+                    label=f"Download Narration Audio (mp3)",
+                    data=af,
+                    file_name=os.path.basename(audio_file)
+                )
+                st.audio(af.read(), format="audio/mp3")
+        st.markdown(tab_content)
+
+    with tabs[2]:  # Email Tips Tab
+        tip_texts, tip_zip = st.session_state.tabs["Email Tips"]
+        st.download_button(
+            "Download All Email Tips",
+            data=tip_zip,
+            file_name=f"email_tips_{st.session_state.timestamp}.zip"
+        )
+        for i, tip in enumerate(tip_texts):
+            st.markdown(f"**Tip {i+1}:** {tip}")
+
+    with tabs[3]:  # Quick Reference Tab
+        qref_path, = st.session_state.tabs["Quick Reference"]
+        with open(qref_path, "rb") as f:
+            st.download_button(
+                "Download Quick Reference",
+                data=f,
+                file_name=os.path.basename(qref_path)
+            )
