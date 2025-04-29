@@ -9,11 +9,10 @@ import io
 import re
 from io import BytesIO
 
-# Load API key
 openai.api_key = st.secrets["OPENAI_API_KEY"]
 
 st.set_page_config(layout="wide")
-st.title("📘 AI Training Content App (Word + Heading 7 support)")
+st.title("📘 AI Training Content App (Heading 7 fix)")
 
 uploaded_file = st.file_uploader("Upload a Word document", type=["docx"])
 
@@ -23,7 +22,7 @@ def extract_sections_from_docx(doc):
     current_text = []
 
     for para in doc.paragraphs:
-        if para.style.name == "Heading 7":
+        if para.style.name.startswith("Heading 7"):
             if current_heading and current_text:
                 sections.append((current_heading, "\n".join(current_text).strip()))
             current_heading = para.text.strip()
