@@ -3,22 +3,38 @@ import os
 import tempfile
 import openai
 import datetime
-from PyPDF2 import PdfReader
 from docx import Document
 import zipfile
 import io
 import re
+from io import BytesIO
 
-# Load OpenAI API Key
+# Load API key
 openai.api_key = st.secrets["OPENAI_API_KEY"]
 
 st.set_page_config(layout="wide")
-st.title("📘 AI Training Content App")
+st.title("📘 AI Training Content App (Word + Heading 7 support)")
 
-uploaded_file = st.file_uploader("Upload a vendor PDF or Quick Reference Word doc", type=["pdf", "docx"])
+uploaded_file = st.file_uploader("Upload a Word document", type=["docx"])
 
-selected_sections = []
-all_sections = []
+def extract_sections_from_docx(doc):
+    sections = []
+    current_heading = None
+    current_text = []
+
+    for para in doc.paragraphs:
+        if para.style.name == "Heading 7":
+            if current_heading and current_text:
+                sections.append((current_heading, "\n".join(current_text).strip()))
+            current_heading = para.text.strip()
+            current_text = []
+        elif current_heading:
+            current_text.append(para.text.strip())
+
+    if current_heading and current_text:
+        sections.append((current_heading, "\n".join(current_text).strip()))
+
+    return sections
 
 def create_word_doc(text, filename):
     doc = Document()
@@ -36,6 +52,13 @@ def create_text_file(text, filename):
 def load_qref_template():
     return Document("templates/QREF_Template.docx")
 
+def clear_document_after_table(doc):
+    if doc.tables:
+        last_table_element = doc.tables[0]._element
+        following = list(last_table_element.itersiblings())
+        for element in following:
+            element.getparent().remove(element)
+
 def create_audio_file(text, filename):
     speech_file_path = os.path.join(tempfile.gettempdir(), filename)
     response = openai.audio.speech.create(
@@ -48,33 +71,13 @@ def create_audio_file(text, filename):
         f.write(response.content)
     return speech_file_path
 
-def clear_document_after_table(doc):
-    tables = doc.tables
-    if not tables:
-        return
-    last_table_element = tables[0]._element
-    following = list(last_table_element.itersiblings())
-    for element in following:
-        element.getparent().remove(element)
-
 if uploaded_file:
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_file:
-        tmp_file.write(uploaded_file.read())
-        tmp_path = tmp_file.name
-
-    def extract_text_by_headings(pdf_path):
-        reader = PdfReader(pdf_path)
-        full_text = ""
-        for page in reader.pages:
-            full_text += page.extract_text() + "\n"
-        headings = re.findall(r"(?m)^[A-Z][A-Z \-\d]{3,}$", full_text)
-        sections = re.split(r"(?m)^[A-Z][A-Z \-\d]{3,}$", full_text)[1:]
-        return list(zip(headings, sections))
-
-    extracted = extract_text_by_headings(tmp_path)
+    docx_stream = BytesIO(uploaded_file.read())
+    doc = Document(docx_stream)
+    extracted = extract_sections_from_docx(doc)
 
     if extracted:
-        all_sections = [f"{i+1}. {title.strip()}" for i, (title, _) in enumerate(extracted)]
+        all_sections = [f"{i+1}. {title}" for i, (title, _) in enumerate(extracted)]
         selected_sections = st.multiselect("Choose section(s) to create class from", all_sections)
 
         col1, col2 = st.columns(2)
@@ -147,21 +150,14 @@ if uploaded_file:
                 qref_doc = load_qref_template()
                 clear_document_after_table(qref_doc)
 
-                class_title = "Training Content"
-                title_lines = outline_text.splitlines()
-                for line in title_lines:
-                    if line.strip():
-                        class_title = line.strip()
-                        break
-
+                class_title = selected_sections[0] if selected_sections else "Training Content"
                 qref_doc.add_paragraph(class_title, style="IT Title")
                 qref_doc.add_paragraph("Overview", style="IT Heading 1")
                 qref_doc.add_paragraph("This Quick Reference supports the class learning objectives.", style="Body Text")
 
-                for section in outline_text.split("\n"):
-                    if section.strip() and not section.lower().startswith("learning objective"):
-                        qref_doc.add_paragraph(section.strip(), style="IT Heading 2")
-                        qref_doc.add_paragraph("[Insert Screenshot Here]", style="Body Text")
+                for section in selected_content.split("\n\n"):
+                    qref_doc.add_paragraph(section.strip(), style="IT Heading 2")
+                    qref_doc.add_paragraph("[Insert Screenshot Here]", style="Body Text")
 
                 for para in script_text.split("\n\n"):
                     if para.lower().startswith("tip:"):
