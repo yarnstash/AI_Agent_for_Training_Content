@@ -65,7 +65,7 @@ def create_audio_file(text, filename):
     response = openai.audio.speech.create(
         model="tts-1",
         input=text,
-        voice="alloy"
+        voice="sage"
     )
     response.stream_to_file(speech_file_path)
     return speech_file_path
