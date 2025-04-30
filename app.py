@@ -60,15 +60,18 @@ def clear_document_after_table(doc):
 
 def create_audio_file(text, filename):
     speech_file_path = os.path.join(tempfile.gettempdir(), filename)
-    response = openai.audio.speech.with_streaming_response.create(
+
+    with openai.audio.speech.with_streaming_response.create(
         model="tts-1",
         voice="alloy",
         input=text
-    )
-    with open(speech_file_path, "wb") as f:
-        for chunk in response.iter_bytes():
-            f.write(chunk)
+    ) as response:
+        with open(speech_file_path, "wb") as f:
+            for chunk in response.iter_bytes():
+                f.write(chunk)
+
     return speech_file_path
+
 
 
 if uploaded_file:
