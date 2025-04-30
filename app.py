@@ -110,10 +110,10 @@ if uploaded_file:
                 outline_file = create_word_doc(outline_text, f"class_outline_{timestamp}.docx")
                 script_file = create_text_file(script_text, f"narration_script_{timestamp}.txt")
 
-                # NEW TIP SPLITTING: match "Tip X:" and include following lines until next "Tip Y:" or end
-                tip_pattern = r"(?=Tip\s+\d+:)"
-                tips = re.split(tip_pattern, tips_text)
-                tips = ["Tip " + tip.strip() for tip in tips if tip.strip()][:5]
+                # FIX TIP SPLITTING TO AVOID STEP NUMBERS
+                tip_pattern = r"Tip\s+(\d+):(.*?)((?=\nTip\s+\d+:)|$)"
+                tip_blocks = re.findall(tip_pattern, tips_text, re.DOTALL)
+                tips = [f"Tip {num}: {body.strip()}" for num, body, _ in tip_blocks][:5]
 
                 tip_files = []
                 for i, tip in enumerate(tips):
