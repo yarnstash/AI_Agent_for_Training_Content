@@ -12,25 +12,7 @@ from io import BytesIO
 openai.api_key = st.secrets["OPENAI_API_KEY"]
 
 st.set_page_config(layout="wide")
-st.title("📘 AI Training Content App (Audio Fix Applied)")
-
-if st.sidebar.button("Generate TTS Test File"):
-    test_path = os.path.join(tempfile.gettempdir(), "test_fixed_tts.mp3")
-    test_text = "This is a hard-coded TTS generation test using OpenAI's Alloy voice."
-
-    response = openai.audio.speech.create(
-        model="tts-1",
-        voice="alloy",
-        input=file.read()
-    ) as  response:       response.stream_to_file(created_audio_file_path)
-    
-
-    with open(test_path, "wb") as f:
-        f.write(response.content)
-
-    with open(test_path, "rb") as f:
-        st.sidebar.download_button("Download Test Audio", data=f, file_name="test_fixed_tts.mp3")
-        st.sidebar.audio(f.read(), format="audio/mp3")
+st.title("📘 AI Training Content App")
 
 uploaded_file = st.file_uploader("Upload a Word document", type=["docx"])
 
@@ -75,33 +57,6 @@ def clear_document_after_table(doc):
         following = list(last_table_element.itersiblings())
         for element in following:
             element.getparent().remove(element)
-
-# ✅ Clean and direct TTS using content
-def create_audio_file(text, filename):
-    speech_file_path = os.path.join(tempfile.gettempdir(), filename)
-
-    if not text.strip() or len(text.strip()) < 10:
-        print(f"[TTS Skipped] Too short: {text.strip()[:30]}")
-        return None
-
-    response = openai.audio.speech.create(
-        model="tts-1",
-        voice="alloy",
-        input=text.strip()
-    )
-
-    if not response.content:
-        print(f"[TTS Error] No content returned for: {filename}")
-        return None
-
-    with open(speech_file_path, "wb") as f:
-        f.write(response.content)
-
-    if os.path.getsize(speech_file_path) == 0:
-        print(f"[TTS Error] Empty file: {filename}")
-        return None
-
-    return speech_file_path
 
 if uploaded_file:
     docx_stream = BytesIO(uploaded_file.read())
@@ -157,18 +112,6 @@ if uploaded_file:
                 outline_file = create_word_doc(outline_text, f"class_outline_{timestamp}.docx")
                 script_file = create_text_file(script_text, f"narration_script_{timestamp}.txt")
 
-                # ✅ FILTERED AUDIO PARAGRAPH LOOP
-                paragraphs = [p.strip() for p in script_text.split("\n\n") if len(p.strip()) >= 10]
-                audio_files = []
-                for idx, paragraph in enumerate(paragraphs):
-                    audio_filename = f"narration_paragraph_{idx + 1}_{timestamp}.mp3"
-                    try:
-                        audio_file = create_audio_file(paragraph, audio_filename)
-                        if audio_file and os.path.exists(audio_file):
-                            audio_files.append(audio_file)
-                    except Exception as e:
-                        print(f"[Audio Error] {e}")
-
                 tips = re.split(r"(?m)^\s*(?:\d+\.\s+|Tip\s+\d+:)", tips_text)
                 tips = [tip.strip() for tip in tips if tip.strip()][:5]
 
@@ -212,7 +155,7 @@ if uploaded_file:
                 st.session_state.timestamp = timestamp
                 st.session_state.tabs = {
                     "Outline": (outline_text, outline_file),
-                    "Narration": (script_text, script_file, audio_files),
+                    "Narration": (script_text, script_file),
                     "Email Tips": (tips, tip_zip),
                     "Quick Reference": (qref_path,)
                 }
@@ -227,15 +170,10 @@ if st.session_state.get("generated"):
         st.markdown(tab_content)
 
     with tabs[1]:
-        tab_content, tab_file, audio_files = st.session_state.tabs["Narration"]
+        tab_content, tab_file = st.session_state.tabs["Narration"]
         with open(tab_file, "rb") as f:
             st.download_button("Download Narration Script", data=f, file_name=os.path.basename(tab_file))
         st.markdown(tab_content)
-        for audio_file in audio_files:
-            if audio_file and os.path.exists(audio_file):
-                with open(audio_file, "rb") as af:
-                    st.download_button(f"Download Narration Audio (mp3)", data=af, file_name=os.path.basename(audio_file))
-                    st.audio(af.read(), format="audio/mp3")
 
     with tabs[2]:
         tip_texts, tip_zip = st.session_state.tabs["Email Tips"]
