@@ -59,16 +59,20 @@ def clear_document_after_table(doc):
         for element in following:
             element.getparent().remove(element)
 
-# ✅ FIXED: Working TTS
 def create_audio_file(text, filename):
     speech_file_path = os.path.join(tempfile.gettempdir(), filename)
-    response = openai.audio.speech.create(
-        model="tts-1",
-        input=text,
-        voice="sage"
-    )
-    response.stream_to_file(speech_file_path)
-    return speech_file_path
+
+    try:
+        response = openai.audio.speech.create(
+            model="tts-1",
+            voice="sage",  # or "echo", "fable", "onyx", etc.
+            input=text
+        )
+        response.stream_to_file(speech_file_path)
+        return speech_file_path
+    except Exception as e:
+        print(f"Audio generation failed: {e}")
+        return None
 
 if uploaded_file:
     docx_stream = BytesIO(uploaded_file.read())
