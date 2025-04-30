@@ -9,10 +9,11 @@ import io
 import re
 from io import BytesIO
 
+# Load API Key
 openai.api_key = st.secrets["OPENAI_API_KEY"]
 
 st.set_page_config(layout="wide")
-st.title("📘 AI Training Content App (Heading 7 fix)")
+st.title("📘 AI Training Content App (with working audio)")
 
 uploaded_file = st.file_uploader("Upload a Word document", type=["docx"])
 
@@ -58,16 +59,15 @@ def clear_document_after_table(doc):
         for element in following:
             element.getparent().remove(element)
 
+# ✅ FIXED: Working TTS
 def create_audio_file(text, filename):
     speech_file_path = os.path.join(tempfile.gettempdir(), filename)
     response = openai.audio.speech.create(
         model="tts-1",
         input=text,
-        voice="sage",
-        response_format="mp3"
+        voice="sage"
     )
-    with open(speech_file_path, "wb") as f:
-        f.write(response.content)
+    response.stream_to_file(speech_file_path)
     return speech_file_path
 
 if uploaded_file:
