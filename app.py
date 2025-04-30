@@ -112,11 +112,9 @@ if uploaded_file:
 
                 # FINAL TIP SPLITTING FIX
                 tip_pattern = r"Tip\s+(\d+):\s*(.*?)\s*(?=\nTip\s+\d+:|\Z)"
-                tip_blocks =
-st.markdown("### Raw Tips Text")
-st.text(tips_text)
- re.findall(r"(?i)^\s*Tip\s+(\d+):\s*(.*?)(?=^\s*Tip\s+\d+:|\Z)", tips_text, re.DOTALL | re.MULTILINE)
-                tips = [f"Tip {num}:\n{body.strip()}" for num, body in tip_blocks if body.strip()][:5]
+                tip_blocks = re.findall(tip_pattern, tips_text, re.DOTALL)
+                tips = [f"Tip {num}:
+{body.strip()}" for num, body in tip_blocks if body.strip()][:5]
 
                 tip_files = []
                 for i, tip in enumerate(tips):
