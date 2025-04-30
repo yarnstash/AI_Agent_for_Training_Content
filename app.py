@@ -61,13 +61,28 @@ def clear_document_after_table(doc):
 # ✅ Clean and direct TTS using content
 def create_audio_file(text, filename):
     speech_file_path = os.path.join(tempfile.gettempdir(), filename)
+
+    if not text.strip() or len(text.strip()) < 10:
+        print(f"[TTS Skipped] Too short: {text.strip()[:30]}")
+        return None
+
     response = openai.audio.speech.create(
         model="tts-1",
         voice="alloy",
-        input=text
+        input=text.strip()
     )
+
+    if not response.content:
+        print(f"[TTS Error] No content returned for: {filename}")
+        return None
+
     with open(speech_file_path, "wb") as f:
         f.write(response.content)
+
+    if os.path.getsize(speech_file_path) == 0:
+        print(f"[TTS Error] Empty file: {filename}")
+        return None
+
     return speech_file_path
 
 if uploaded_file:
