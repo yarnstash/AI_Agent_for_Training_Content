@@ -16,7 +16,8 @@ st.title("AI Training Content App")
 
 uploaded_file = st.file_uploader("Upload a Markdown-style DOCX from the search app", type=["docx"])
 
-selected_sections = [] all_sections = []
+selected_sections = []
+all_sections = []
 
 Extract sections from Markdown-style headings in .docx (### style)
 
