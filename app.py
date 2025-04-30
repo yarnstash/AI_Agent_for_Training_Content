@@ -58,18 +58,19 @@ def clear_document_after_table(doc):
         for element in following:
             element.getparent().remove(element)
 
-# ✅ FINAL WORKING TTS using iter_content
 def create_audio_file(text, filename):
     speech_file_path = os.path.join(tempfile.gettempdir(), filename)
-    response = openai.audio.speech.create(
+
+    with openai.audio.speech.with_streaming_response.create(
         model="tts-1",
         voice="alloy",
         input=text
-    )
-    with open(speech_file_path, "wb") as f:
-        for chunk in response.iter_content(chunk_size=8192):
-            f.write(chunk)
+    ) as response:
+        with open(speech_file_path, "wb") as f:
+            f.write(response.read())
+
     return speech_file_path
+
 
 if uploaded_file:
     docx_stream = BytesIO(uploaded_file.read())
