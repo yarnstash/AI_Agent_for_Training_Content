@@ -14,20 +14,6 @@ openai.api_key = st.secrets["OPENAI_API_KEY"]
 st.set_page_config(layout="wide")
 st.title("📘 AI Training Content App (TTS verified)")
 
-if st.sidebar.button("Test TTS"):
-    test_file = os.path.join(tempfile.gettempdir(), "sidebar_test.mp3")
-    response = openai.audio.speech.create(
-        model="tts-1",
-        voice="alloy",
-        input="This is a sidebar TTS test inside your deployed app."
-    )
-    with open(test_file, "wb") as f:
-        f.write(response.content)
-
-    with open(test_file, "rb") as f:
-        st.sidebar.download_button("Download TTS Test Audio", f, file_name="test.mp3")
-        st.sidebar.audio(f.read(), format="audio/mp3")
-
 uploaded_file = st.file_uploader("Upload a Word document", type=["docx"])
 
 def extract_sections_from_docx(doc):
