@@ -5,8 +5,8 @@ import os
 
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
-text = sys.argv[1]
-output_path = sys.argv[2]
+text = sys.stdin.read()
+output_path = sys.argv[1]
 
 response = openai.audio.speech.create(
     model="tts-1",
