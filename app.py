@@ -61,18 +61,13 @@ def clear_document_after_table(doc):
 
 def create_audio_file(text, filename):
     speech_file_path = os.path.join(tempfile.gettempdir(), filename)
-
-    try:
-        response = openai.audio.speech.create(
-            model="gpt-4o-mini-tts",
-            voice="sage",  # or "echo", "fable", "onyx", etc.
-            input=text
-        )
-        response.stream_to_file(speech_file_path)
-        return speech_file_path
-    except Exception as e:
-        print(f"Audio generation failed: {e}")
-        return None
+    response = openai.audio.speech.with_streaming_response.create(
+        model="tts-1",
+        voice="sage",
+        input=text
+    )
+    response.stream_to_file(speech_file_path)
+    return speech_file_path
 
 if uploaded_file:
     docx_stream = BytesIO(uploaded_file.read())
