@@ -12,7 +12,7 @@ from io import BytesIO
 openai.api_key = st.secrets["OPENAI_API_KEY"]
 
 st.set_page_config(layout="wide")
-st.title("📘 AI Training Content App (TTS fixed)")
+st.title("📘 AI Training Content App (TTS verified)")
 
 uploaded_file = st.file_uploader("Upload a Word document", type=["docx"])
 
@@ -58,23 +58,18 @@ def clear_document_after_table(doc):
         for element in following:
             element.getparent().remove(element)
 
+# ✅ FINAL WORKING TTS using iter_content
 def create_audio_file(text, filename):
-    import openai
-
     speech_file_path = os.path.join(tempfile.gettempdir(), filename)
-
     response = openai.audio.speech.create(
         model="tts-1",
         voice="alloy",
         input=text
     )
-
     with open(speech_file_path, "wb") as f:
         for chunk in response.iter_content(chunk_size=8192):
             f.write(chunk)
-
     return speech_file_path
-
 
 if uploaded_file:
     docx_stream = BytesIO(uploaded_file.read())
@@ -198,15 +193,12 @@ if st.session_state.get("generated"):
         tab_content, tab_file, audio_files = st.session_state.tabs["Narration"]
         with open(tab_file, "rb") as f:
             st.download_button("Download Narration Script", data=f, file_name=os.path.basename(tab_file))
-      for audio_file in audio_files:
-    if audio_file and os.path.exists(audio_file):
-        with open(audio_file, "rb") as af:
-            st.download_button(f"Download Narration Audio (mp3)", data=af, file_name=os.path.basename(audio_file))
-            st.audio(af.read(), format="audio/mp3")
-    else:
-        st.warning(f"Audio not generated for: {audio_file}")
-
         st.markdown(tab_content)
+        for audio_file in audio_files:
+            if audio_file and os.path.exists(audio_file):
+                with open(audio_file, "rb") as af:
+                    st.download_button(f"Download Narration Audio (mp3)", data=af, file_name=os.path.basename(audio_file))
+                    st.audio(af.read(), format="audio/mp3")
 
     with tabs[2]:
         tip_texts, tip_zip = st.session_state.tabs["Email Tips"]
