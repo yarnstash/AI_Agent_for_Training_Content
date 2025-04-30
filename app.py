@@ -155,9 +155,3 @@ if st.session_state.get("generated"):
         st.download_button("Download All Email Tips", data=tip_zip, file_name=f"email_tips_{st.session_state.timestamp}.zip")
         for i, tip in enumerate(tip_texts):
             st.markdown(f"**Tip {i+1}:** {tip}")
-
-
-The app has now been updated with improved tip splitting. It detects each Tip X: and includes the full body (including numbered steps) until the next tip or the end of the section.
-
-You should now see 5 fully-formed tips with their proper structure. Let me know if you'd like them styled differently in the Word doc.
-
