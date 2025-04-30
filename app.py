@@ -9,6 +9,8 @@ import io
 import re
 from io import BytesIO
 
+st.sidebar.write("OpenAI version:", openai.__version__)
+
 openai.api_key = st.secrets["OPENAI_API_KEY"]
 
 st.set_page_config(layout="wide")
