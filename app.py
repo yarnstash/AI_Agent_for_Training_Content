@@ -59,6 +59,9 @@ def clear_document_after_table(doc):
             element.getparent().remove(element)
 
 def create_audio_file(text, filename):
+ def create_audio_file(text, filename):
+    print(f"Generating audio for: {text[:60]}...")  # DEBUG
+
     speech_file_path = os.path.join(tempfile.gettempdir(), filename)
 
     with openai.audio.speech.with_streaming_response.create(
@@ -68,8 +71,10 @@ def create_audio_file(text, filename):
     ) as response:
         with open(speech_file_path, "wb") as f:
             for chunk in response.iter_bytes():
+                print("Writing chunk...")  # DEBUG
                 f.write(chunk)
 
+    print(f"Saved: {speech_file_path}")
     return speech_file_path
 
 
