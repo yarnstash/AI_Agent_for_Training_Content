@@ -64,12 +64,13 @@ def create_audio_file(text, filename):
     output_path = os.path.join(tempfile.gettempdir(), filename)
 
     subprocess.run(
-        ["python", "generate_tts.py", text, output_path],
+        ["python", "generate_tts.py", output_path],
+        input=text,
+        text=True,
         check=True
     )
 
     return output_path if os.path.exists(output_path) and os.path.getsize(output_path) > 0 else None
-
 
 
 if uploaded_file:
