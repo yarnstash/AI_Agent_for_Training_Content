@@ -121,8 +121,7 @@ if uploaded_file:
                 tips = []
                 for num, body in tip_blocks:
                     body_clean = re.sub(r"^Tip\s+\d+:", "", body.strip()).strip("* ")
-                    tip_text = f"Tip {num}:
-{body_clean}"
+                    tip_text = f"Tip {num}:\n{body_clean}"
                     if body_clean:
                         tips.append(tip_text)
                 tips = tips[:5]
