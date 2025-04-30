@@ -11,7 +11,8 @@ from io import BytesIO
 
 openai.api_key = st.secrets["OPENAI_API_KEY"]
 
-st.set_page_config(layout="wide") st.title("📘 AI Training Content App")
+st.set_page_config(layout="wide")
+st.title("📘 AI Training Content App")
 
 uploaded_file = st.file_uploader("Upload a Markdown-style DOCX from the search app", type=["docx"])
 
