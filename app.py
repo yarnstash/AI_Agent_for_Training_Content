@@ -59,24 +59,33 @@ def clear_document_after_table(doc):
             element.getparent().remove(element)
 
 def create_audio_file(text, filename):
- def create_audio_file(text, filename):
-    print(f"Generating audio for: {text[:60]}...")  # DEBUG
-
     speech_file_path = os.path.join(tempfile.gettempdir(), filename)
 
-    with openai.audio.speech.with_streaming_response.create(
-        model="tts-1",
-        voice="alloy",
-        input=text
-    ) as response:
-        with open(speech_file_path, "wb") as f:
-            for chunk in response.iter_bytes():
-                print("Writing chunk...")  # DEBUG
-                f.write(chunk)
+    if not text.strip():
+        print(f"[SKIP] Empty input for: {filename}")
+        return None
 
-    print(f"Saved: {speech_file_path}")
-    return speech_file_path
-
+    try:
+        print(f"[TTS] Generating: {filename}")
+        with openai.audio.speech.with_streaming_response.create(
+            model="tts-1",
+            voice="alloy",
+            input=text
+        ) as response:
+            with open(speech_file_path, "wb") as f:
+                wrote_data = False
+                for chunk in response.iter_bytes():
+                    f.write(chunk)
+                    wrote_data = True
+        if wrote_data and os.path.exists(speech_file_path):
+            print(f"[TTS] Success: {speech_file_path}")
+            return speech_file_path
+        else:
+            print(f"[TTS] No audio returned for: {filename}")
+            return None
+    except Exception as e:
+        print(f"[TTS ERROR] {e}")
+        return None
 
 
 if uploaded_file:
@@ -201,10 +210,14 @@ if st.session_state.get("generated"):
         tab_content, tab_file, audio_files = st.session_state.tabs["Narration"]
         with open(tab_file, "rb") as f:
             st.download_button("Download Narration Script", data=f, file_name=os.path.basename(tab_file))
-        for audio_file in audio_files:
-            with open(audio_file, "rb") as af:
-                st.download_button(f"Download Narration Audio (mp3)", data=af, file_name=os.path.basename(audio_file))
-                st.audio(af.read(), format="audio/mp3")
+      for audio_file in audio_files:
+    if audio_file and os.path.exists(audio_file):
+        with open(audio_file, "rb") as af:
+            st.download_button(f"Download Narration Audio (mp3)", data=af, file_name=os.path.basename(audio_file))
+            st.audio(af.read(), format="audio/mp3")
+    else:
+        st.warning(f"Audio not generated for: {audio_file}")
+
         st.markdown(tab_content)
 
     with tabs[2]:
