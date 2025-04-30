@@ -64,7 +64,7 @@ def create_audio_file(text, filename):
 
     try:
         response = openai.audio.speech.create(
-            model="tts-1",
+            model="gpt-4o-mini-tts",
             voice="sage",  # or "echo", "fable", "onyx", etc.
             input=text
         )
