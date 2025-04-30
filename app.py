@@ -1,4 +1,13 @@
-import streamlit as st import os import tempfile import openai import datetime from docx import Document import zipfile import io import re from io import BytesIO
+import streamlit as st
+import os
+import tempfile
+import openai
+import datetime from docx
+import Document
+import zipfile 
+import io
+import re from io
+import BytesIO
 
 openai.api_key = st.secrets["OPENAI_API_KEY"]
 
