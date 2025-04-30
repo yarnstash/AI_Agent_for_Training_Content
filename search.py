@@ -39,7 +39,8 @@ if user_query:
 
         # Export to Word
         doc = Document()
-        doc.add_paragraph(answer)
+        for line in answer.split("\n"):
+            doc.add_paragraph(line)
         output_path = os.path.join(tempfile.gettempdir(), "extracted_response.docx")
         doc.save(output_path)
 
