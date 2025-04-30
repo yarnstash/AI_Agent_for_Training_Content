@@ -58,16 +58,18 @@ def clear_document_after_table(doc):
         for element in following:
             element.getparent().remove(element)
 
-# ✅ FIXED streaming audio method
 def create_audio_file(text, filename):
     speech_file_path = os.path.join(tempfile.gettempdir(), filename)
     response = openai.audio.speech.with_streaming_response.create(
         model="tts-1",
-        voice="sage",
+        voice="alloy",
         input=text
     )
-    response.stream_to_file(speech_file_path)
+    with open(speech_file_path, "wb") as f:
+        for chunk in response.iter_bytes():
+            f.write(chunk)
     return speech_file_path
+
 
 if uploaded_file:
     docx_stream = BytesIO(uploaded_file.read())
