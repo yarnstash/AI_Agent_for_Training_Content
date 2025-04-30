@@ -8,7 +8,8 @@ from io import BytesIO
 
 openai.api_key = st.secrets["OPENAI_API_KEY"]
 
-st.set_page_config(layout="wide") st.title("Semantic Document Search & Export")
+st.set_page_config(layout="wide")
+st.title("Semantic Document Search & Export")
 
 Upload multiple files
 
