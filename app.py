@@ -59,33 +59,21 @@ def clear_document_after_table(doc):
             element.getparent().remove(element)
 
 def create_audio_file(text, filename):
+    import openai
+
     speech_file_path = os.path.join(tempfile.gettempdir(), filename)
 
-    if not text.strip():
-        print(f"[SKIP] Empty input for: {filename}")
-        return None
+    response = openai.audio.speech.create(
+        model="tts-1",
+        voice="alloy",
+        input=text
+    )
 
-    try:
-        print(f"[TTS] Generating: {filename}")
-        with openai.audio.speech.with_streaming_response.create(
-            model="tts-1",
-            voice="alloy",
-            input=text
-        ) as response:
-            with open(speech_file_path, "wb") as f:
-                wrote_data = False
-                for chunk in response.iter_bytes():
-                    f.write(chunk)
-                    wrote_data = True
-        if wrote_data and os.path.exists(speech_file_path):
-            print(f"[TTS] Success: {speech_file_path}")
-            return speech_file_path
-        else:
-            print(f"[TTS] No audio returned for: {filename}")
-            return None
-    except Exception as e:
-        print(f"[TTS ERROR] {e}")
-        return None
+    with open(speech_file_path, "wb") as f:
+        for chunk in response.iter_content(chunk_size=8192):
+            f.write(chunk)
+
+    return speech_file_path
 
 
 if uploaded_file:
