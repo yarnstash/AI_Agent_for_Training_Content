@@ -1,17 +1,10 @@
-import streamlit as st
-import os
-import tempfile
-from docx import Document
-from PyPDF2 import PdfReader
-import openai
-from io import BytesIO
+import streamlit as st import os import tempfile from docx import Document from PyPDF2 import PdfReader import openai from io import BytesIO
 
 openai.api_key = st.secrets["OPENAI_API_KEY"]
 
-st.set_page_config(layout="wide")
-st.title("Semantic Document Search & Export")
+st.set_page_config(layout="wide") st.title("Semantic Document Search & Export")
 
-# Upload multiple files
+Upload multiple files
 
 uploaded_files = st.file_uploader("Upload PDF or Word documents", type=["pdf", "docx"], accept_multiple_files=True)
 
@@ -19,7 +12,11 @@ Store document content
 
 documents = []
 
+Extract text from PDF
+
 def extract_text_from_pdf(file): reader = PdfReader(file) text = "\n".join(page.extract_text() or "" for page in reader.pages) return text
+
+Extract text from DOCX
 
 def extract_text_from_docx(file): doc = Document(file) text = "\n".join(para.text for para in doc.paragraphs) return text
 
