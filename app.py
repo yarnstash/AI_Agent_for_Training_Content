@@ -9,11 +9,10 @@ import io
 import re
 from io import BytesIO
 
-# Load API Key
 openai.api_key = st.secrets["OPENAI_API_KEY"]
 
 st.set_page_config(layout="wide")
-st.title("📘 AI Training Content App (with working audio)")
+st.title("📘 AI Training Content App (TTS fixed)")
 
 uploaded_file = st.file_uploader("Upload a Word document", type=["docx"])
 
@@ -59,6 +58,7 @@ def clear_document_after_table(doc):
         for element in following:
             element.getparent().remove(element)
 
+# ✅ FIXED streaming audio method
 def create_audio_file(text, filename):
     speech_file_path = os.path.join(tempfile.gettempdir(), filename)
     response = openai.audio.speech.with_streaming_response.create(
