@@ -112,7 +112,7 @@ if uploaded_file:
 
                 # FINAL TIP SPLITTING FIX
                 tip_pattern = r"Tip\s+(\d+):\s*(.*?)\s*(?=\nTip\s+\d+:|\Z)"
-                tip_blocks = re.findall(tip_pattern, tips_text, re.DOTALL)
+                tip_blocks = re.findall(r"^Tip\s+(\d+):\s*(.*?)\s*(?=^Tip\s+\d+:|\Z)", tips_text, re.DOTALL | re.MULTILINE)
                 tips = [f"Tip {num}:
 {body.strip()}" for num, body in tip_blocks if body.strip()][:5]
 
