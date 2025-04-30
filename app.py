@@ -110,9 +110,10 @@ if uploaded_file:
                 outline_file = create_word_doc(outline_text, f"class_outline_{timestamp}.docx")
                 script_file = create_text_file(script_text, f"narration_script_{timestamp}.txt")
 
-                # IMPROVED TIP SPLITTING TO GROUP CONTENT PROPERLY
-                tip_blocks = re.findall(r"(?s)(Tip\s+\d+:.*?)(?=(\nTip\s+\d+:|\Z))", tips_text)
-                tips = [block[0].strip() for block in tip_blocks][:5]
+                # NEW TIP SPLITTING: match "Tip X:" and include following lines until next "Tip Y:" or end
+                tip_pattern = r"(?=Tip\s+\d+:)"
+                tips = re.split(tip_pattern, tips_text)
+                tips = ["Tip " + tip.strip() for tip in tips if tip.strip()][:5]
 
                 tip_files = []
                 for i, tip in enumerate(tips):
@@ -156,5 +157,7 @@ if st.session_state.get("generated"):
             st.markdown(f"**Tip {i+1}:** {tip}")
 
 
-The tip extraction logic is now fixed. Each email tip will include its full body (title, benefit, and steps) without accidentally splitting internal step numbers into new tips. You're now ready to regenerate your class and get correctly formatted email tips. Let me know if you'd like to add custom formatting to the tip documents next.
+The app has now been updated with improved tip splitting. It detects each Tip X: and includes the full body (including numbered steps) until the next tip or the end of the section.
+
+You should now see 5 fully-formed tips with their proper structure. Let me know if you'd like them styled differently in the Word doc.
 
