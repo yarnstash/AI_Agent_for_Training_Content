@@ -14,6 +14,23 @@ openai.api_key = st.secrets["OPENAI_API_KEY"]
 st.set_page_config(layout="wide")
 st.title("📘 AI Training Content App (Audio Fix Applied)")
 
+if st.sidebar.button("Generate TTS Test File"):
+    test_path = os.path.join(tempfile.gettempdir(), "test_fixed_tts.mp3")
+    test_text = "This is a hard-coded TTS generation test using OpenAI's Alloy voice."
+
+    response = openai.audio.speech.create(
+        model="tts-1",
+        voice="alloy",
+        input=test_text
+    )
+
+    with open(test_path, "wb") as f:
+        f.write(response.content)
+
+    with open(test_path, "rb") as f:
+        st.sidebar.download_button("Download Test Audio", data=f, file_name="test_fixed_tts.mp3")
+        st.sidebar.audio(f.read(), format="audio/mp3")
+
 uploaded_file = st.file_uploader("Upload a Word document", type=["docx"])
 
 def extract_sections_from_docx(doc):
