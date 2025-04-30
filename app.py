@@ -21,8 +21,9 @@ if st.sidebar.button("Generate TTS Test File"):
     response = openai.audio.speech.create(
         model="tts-1",
         voice="alloy",
-        input=test_text
-    )
+        input=file.read()
+    ) as  response:       response.stream_to_file(created_audio_file_path)
+    
 
     with open(test_path, "wb") as f:
         f.write(response.content)
