@@ -12,7 +12,7 @@ from io import BytesIO
 openai.api_key = st.secrets["OPENAI_API_KEY"]
 
 st.set_page_config(layout="wide")
-st.title("📘 AI Training Content App (TTS verified)")
+st.title("📘 AI Training Content App (Audio Fix Applied)")
 
 uploaded_file = st.file_uploader("Upload a Word document", type=["docx"])
 
@@ -58,20 +58,17 @@ def clear_document_after_table(doc):
         for element in following:
             element.getparent().remove(element)
 
-import subprocess
-
+# ✅ Clean and direct TTS using content
 def create_audio_file(text, filename):
-    output_path = os.path.join(tempfile.gettempdir(), filename)
-
-    subprocess.run(
-        ["python", "generate_tts.py", output_path],
-        input=text,
-        text=True,
-        check=True
+    speech_file_path = os.path.join(tempfile.gettempdir(), filename)
+    response = openai.audio.speech.create(
+        model="tts-1",
+        voice="alloy",
+        input=text
     )
-
-    return output_path if os.path.exists(output_path) and os.path.getsize(output_path) > 0 else None
-
+    with open(speech_file_path, "wb") as f:
+        f.write(response.content)
+    return speech_file_path
 
 if uploaded_file:
     docx_stream = BytesIO(uploaded_file.read())
@@ -127,12 +124,17 @@ if uploaded_file:
                 outline_file = create_word_doc(outline_text, f"class_outline_{timestamp}.docx")
                 script_file = create_text_file(script_text, f"narration_script_{timestamp}.txt")
 
-                paragraphs = script_text.split("\n\n")
+                # ✅ FILTERED AUDIO PARAGRAPH LOOP
+                paragraphs = [p.strip() for p in script_text.split("\n\n") if len(p.strip()) >= 10]
                 audio_files = []
                 for idx, paragraph in enumerate(paragraphs):
                     audio_filename = f"narration_paragraph_{idx + 1}_{timestamp}.mp3"
-                    audio_file = create_audio_file(paragraph, audio_filename)
-                    audio_files.append(audio_file)
+                    try:
+                        audio_file = create_audio_file(paragraph, audio_filename)
+                        if audio_file and os.path.exists(audio_file):
+                            audio_files.append(audio_file)
+                    except Exception as e:
+                        print(f"[Audio Error] {e}")
 
                 tips = re.split(r"(?m)^\s*(?:\d+\.\s+|Tip\s+\d+:)", tips_text)
                 tips = [tip.strip() for tip in tips if tip.strip()][:5]
