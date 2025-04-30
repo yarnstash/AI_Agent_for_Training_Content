@@ -1,4 +1,10 @@
-import streamlit as st import os import tempfile from docx import Document from PyPDF2 import PdfReader import openai from io import BytesIO
+import streamlit as st
+import os
+import tempfile
+from docx import Document
+from PyPDF2 import PdfReader
+import openai
+from io import BytesIO
 
 openai.api_key = st.secrets["OPENAI_API_KEY"]
 
