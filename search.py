@@ -11,7 +11,7 @@ openai.api_key = st.secrets["OPENAI_API_KEY"]
 st.set_page_config(layout="wide")
 st.title("Semantic Document Search & Export")
 
-Upload multiple files
+# Upload multiple files
 
 uploaded_files = st.file_uploader("Upload PDF or Word documents", type=["pdf", "docx"], accept_multiple_files=True)
 
