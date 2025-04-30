@@ -81,11 +81,18 @@ if uploaded_file:
                     ]
                 )
 
+                tips_prompt = (
+                    "Generate exactly 5 email tips based on the following training content."
+                    " Each tip should include the following structure:\n"
+                    "Tip X: [Title]\nBenefit: [Why it's useful]\nSteps:\n1. ...\n2. ...\n3. ..."
+                    " Clearly separate each tip using 'Tip X:' and keep the structure consistent."
+                )
+
                 tips_response = openai.chat.completions.create(
                     model="gpt-4.1-mini",
                     messages=[
                         {"role": "system", "content": "You are an instructional content expert."},
-                        {"role": "user", "content": f"Generate exactly 5 email tips based on the following training content. Each tip should describe one useful feature, explain its benefit, and provide short step-by-step instructions. Output each as a separate tip, clearly numbered or titled:\n{selected_content}"},
+                        {"role": "user", "content": f"{tips_prompt}\n\nCONTENT:\n{selected_content}"}
                     ]
                 )
 
@@ -93,7 +100,6 @@ if uploaded_file:
                 script_text = script_response.choices[0].message.content
                 tips_text = tips_response.choices[0].message.content
 
-                # Create downloadable files
                 def create_word_doc(text, filename):
                     doc = Document()
                     doc.add_paragraph(text)
@@ -110,11 +116,16 @@ if uploaded_file:
                 outline_file = create_word_doc(outline_text, f"class_outline_{timestamp}.docx")
                 script_file = create_text_file(script_text, f"narration_script_{timestamp}.txt")
 
-                # FINAL TIP SPLITTING FIX
-                tip_pattern = r"Tip\s+(\d+):\s*(.*?)\s*(?=\nTip\s+\d+:|\Z)"
+                tip_pattern = r"Tip\s+(\d+):\s*(.*?)\s*(?=Tip\s+\d+:|\Z)"
                 tip_blocks = re.findall(tip_pattern, tips_text, re.DOTALL)
-                tips = [f"Tip {num}:
-{body.strip()}" for num, body in tip_blocks if body.strip()][:5]
+                tips = []
+                for num, body in tip_blocks:
+                    body_clean = re.sub(r"^Tip\s+\d+:", "", body.strip()).strip("* ")
+                    tip_text = f"Tip {num}:
+{body_clean}"
+                    if body_clean:
+                        tips.append(tip_text)
+                tips = tips[:5]
 
                 tip_files = []
                 for i, tip in enumerate(tips):
