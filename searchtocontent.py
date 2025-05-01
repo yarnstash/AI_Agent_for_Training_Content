@@ -108,57 +108,57 @@ with tabs[1]:
         section_titles = [f"{i+1}. {title}" for i, (title, _) in enumerate(parsed_sections)]
         selected = st.multiselect("Select sections to include", section_titles)
 
-        if selected:
+        run_type = st.session_state.get("run_type", "")
+        col1, col2 = st.columns(2)
+        if col1.button("Create QuickByte"):
+            st.session_state.run_type = "QuickByte"
+        if col2.button("Create FastTrack", disabled=len(selected) < 1):
+            st.session_state.run_type = "FastTrack"
+
+        if selected and "run_type" in st.session_state:
             selected_indices = [int(s.split(".")[0]) - 1 for s in selected]
             content_input = "\n\n".join(parsed_sections[i][1] for i in selected_indices)
             timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
 
-            if st.button("Generate Training Content"):
-                with st.spinner("Generating outline, script, and tips..."):
-                    outline = openai.chat.completions.create(
-                        model="gpt-4.1-mini",
-                        messages=[
-                            {"role": "system", "content": "Create a class outline with learning objectives."},
-                            {"role": "user", "content": f"Write an outline for a 15-minute class based on this:\n{content_input}"}
-                        ]
-                    ).choices[0].message.content
+            with st.spinner("Generating training content..."):
+                outline = openai.chat.completions.create(
+                    model="gpt-4.1-mini",
+                    messages=[
+                        {"role": "system", "content": "Create a class outline with learning objectives."},
+                        {"role": "user", "content": f"Write an outline for a {'15-minute QuickByte' if st.session_state.run_type == 'QuickByte' else '30-minute FastTrack'} class based on this:\n{content_input}"}
+                    ]
+                ).choices[0].message.content
 
-                    script = openai.chat.completions.create(
-                        model="gpt-4.1-mini",
-                        messages=[
-                            {"role": "system", "content": "Create a narration script."},
-                            {"role": "user", "content": f"Write a narration script for the selected training content:\n{content_input}"}
-                        ]
-                    ).choices[0].message.content
+                script = openai.chat.completions.create(
+                    model="gpt-4.1-mini",
+                    messages=[
+                        {"role": "system", "content": "Create a narration script."},
+                        {"role": "user", "content": f"Write a narration script for the selected training content:\n{content_input}"}
+                    ]
+                ).choices[0].message.content
 
-                    tips_prompt = (
-                        "Generate 5 email tips from the following content."
-                        " Each should include a title, benefit, and 3 steps. Use this format:\n"
-                        "Tip X: [Title]\nBenefit: ...\nSteps:\n1. ...\n2. ...\n3. ..."
-                    )
-                    tips = openai.chat.completions.create(
-                        model="gpt-4.1-mini",
-                        messages=[
-                            {"role": "system", "content": "Instructional content expert"},
-                            {"role": "user", "content": f"{tips_prompt}\n\nCONTENT:\n{content_input}"}
-                        ]
-                    ).choices[0].message.content
+                tips_prompt = (
+                    "Generate 5 email tips from the following content."
+                    " Each should include a title, benefit, and 3 steps. Use this format:\n"
+                    "Tip X: [Title]\nBenefit: ...\nSteps:\n1. ...\n2. ...\n3. ..."
+                )
+                tips = openai.chat.completions.create(
+                    model="gpt-4.1-mini",
+                    messages=[
+                        {"role": "system", "content": "Instructional content expert"},
+                        {"role": "user", "content": f"{tips_prompt}\n\nCONTENT:\n{content_input}"}
+                    ]
+                ).choices[0].message.content
 
-                def create_doc(text, name):
-                    doc = Document()
-                    for line in text.split("\n"):
-                        doc.add_paragraph(line.strip())
-                    path = os.path.join(tempfile.gettempdir(), name)
-                    doc.save(path)
-                    return path
+            st.success("Training content generated!")
 
-                outline_path = create_doc(outline, f"outline_{timestamp}.docx")
-                script_path = create_doc(script, f"script_{timestamp}.docx")
-                tips_path = create_doc(tips, f"email_tips_{timestamp}.docx")
-
-                with open(outline_path, "rb") as f:
-                    st.download_button("Download Outline", f, file_name=os.path.basename(outline_path))
-                with open(script_path, "rb") as f:
-                    st.download_button("Download Script", f, file_name=os.path.basename(script_path))
-                with open(tips_path, "rb") as f:
-                    st.download_button("Download Email Tips", f, file_name=os.path.basename(tips_path))
+            preview_tabs = st.tabs(["Outline", "Narration Script", "Email Tips"])
+            with preview_tabs[0]:
+                st.download_button("Download Outline", outline, file_name=f"outline_{timestamp}.txt")
+                st.markdown(outline)
+            with preview_tabs[1]:
+                st.download_button("Download Script", script, file_name=f"script_{timestamp}.txt")
+                st.markdown(script)
+            with preview_tabs[2]:
+                st.download_button("Download Email Tips", tips, file_name=f"email_tips_{timestamp}.txt")
+                st.markdown(tips)
