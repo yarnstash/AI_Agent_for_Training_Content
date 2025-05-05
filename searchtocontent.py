@@ -12,7 +12,7 @@ import re
 openai.api_key = st.secrets["OPENAI_API_KEY"]
 
 st.set_page_config(layout="wide")
-st.title("ðŸ“˜ AI Training Content App (Search + Content + Design Steps)")
+st.title(" AI Training Content App (Search + Content + Design Steps)")
 
 # Step 1: Upload and Analyze
 st.header("Step 1: Upload and Analyze")
