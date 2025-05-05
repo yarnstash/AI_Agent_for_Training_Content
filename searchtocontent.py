@@ -19,7 +19,7 @@ uploaded_files = st.file_uploader("Upload one or more documents (PDF or DOCX)", 
 selected_sections = []
 all_text_blocks = []
 
-Helper: Extract text from uploaded files
+#Helper: Extract text from uploaded files
 
 def extract_text_from_file(uploaded_file): ext = os.path.splitext(uploaded_file.name)[1].lower() text = "" if ext == ".docx": doc = Document(uploaded_file) for para in doc.paragraphs: if para.text.strip(): text += para.text.strip() + "\n" elif ext == ".pdf": from PyPDF2 import PdfReader reader = PdfReader(uploaded_file) for page in reader.pages: page_text = page.extract_text() if page_text: text += page_text + "\n" return text
 
