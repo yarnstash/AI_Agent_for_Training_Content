@@ -1,3 +1,4 @@
+
 import streamlit as st
 import os
 import tempfile
@@ -12,83 +13,189 @@ from io import BytesIO
 openai.api_key = st.secrets["OPENAI_API_KEY"]
 
 st.set_page_config(layout="wide")
-st.title("📘 AI Training Content App")
+st.title("ðŸ“˜ Semantic Search to Training Content")
 
-uploaded_files = st.file_uploader("Upload one or more documents (PDF or DOCX)", type=["pdf", "docx"], accept_multiple_files=True)
+# Step 1: Upload and Search
+uploaded_files = st.file_uploader("Upload PDF or Word documents", type=["pdf", "docx"], accept_multiple_files=True)
+search_query = st.text_input("What content are you looking for? (e.g., all the information about narratives)")
 
 selected_sections = []
+all_sections = []
 all_text_blocks = []
 
-#Helper: Extract text from uploaded files
+def extract_text_from_pdf(pdf_file):
+    import fitz
+    text_blocks = []
+    with fitz.open(pdf_file) as doc:
+        for page in doc:
+            text = page.get_text("text")
+            for line in text.splitlines():
+                if line.strip():
+                    text_blocks.append(line.strip())
+    return text_blocks
 
-def extract_text_from_file(uploaded_file): ext = os.path.splitext(uploaded_file.name)[1].lower() text = "" if ext == ".docx": doc = Document(uploaded_file) for para in doc.paragraphs: if para.text.strip(): text += para.text.strip() + "\n" elif ext == ".pdf": from PyPDF2 import PdfReader reader = PdfReader(uploaded_file) for page in reader.pages: page_text = page.extract_text() if page_text: text += page_text + "\n" return text
+def extract_text_from_docx(docx_file):
+    doc = Document(docx_file)
+    return [p.text.strip() for p in doc.paragraphs if p.text.strip()]
 
-if uploaded_files: all_text = "" for file in uploaded_files: all_text += extract_text_from_file(file) + "\n"
+if uploaded_files and search_query:
+    all_text_blocks.clear()
+    for file in uploaded_files:
+        with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(file.name)[1]) as tmp:
+            tmp.write(file.read())
+            tmp_path = tmp.name
+        if file.name.lower().endswith(".pdf"):
+            all_text_blocks.extend(extract_text_from_pdf(tmp_path))
+        elif file.name.lower().endswith(".docx"):
+            all_text_blocks.extend(extract_text_from_docx(tmp_path))
 
-prompt = st.text_input("Enter a prompt to extract relevant content from uploaded documents (e.g., 'show all content about narratives'):")
-if prompt:
-    with st.spinner("Analyzing content..."):
-        response = openai.chat.completions.create(
-            model="gpt-4.1-mini",
-            messages=[
-                {"role": "system", "content": "You are a helpful assistant that extracts relevant content."},
-                {"role": "user", "content": f"Extract all relevant content from this text based on the prompt '{prompt}'. Present the results in sections with markdown headings prefixed by ###.\n\n{all_text}"}
-            ]
-        )
-        search_result = response.choices[0].message.content
-        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-        temp_path = os.path.join(tempfile.gettempdir(), f"search_result_{timestamp}.docx")
-        doc = Document()
-        for line in search_result.splitlines():
-            if line.startswith("### "):
-                doc.add_heading(line[4:].strip(), level=3)
-            else:
-                doc.add_paragraph(line.strip())
-        doc.save(temp_path)
-        st.success("Search results extracted.")
-
-        with open(temp_path, "rb") as f:
-            st.download_button("Download Extracted Content (DOCX)", data=f, file_name=os.path.basename(temp_path))
-
-        st.divider()
-        st.subheader("Step 2: Generate Class Content")
-        doc = Document(temp_path)
-        text_blocks = [p.text.strip() for p in doc.paragraphs if p.text.strip() != ""]
-        extracted = []
-        current_heading = None
-        current_content = []
-
-        for line in text_blocks:
-            if line.startswith("### "):
-                if current_heading and current_content:
-                    extracted.append((current_heading, "\n".join(current_content).strip()))
-                current_heading = line.replace("### ", "").strip()
-                current_content = []
-            elif current_heading:
-                current_content.append(line)
-        if current_heading and current_content:
-            extracted.append((current_heading, "\n".join(current_content).strip()))
-
-        all_sections = [f"{i+1}. {title}" for i, (title, _) in enumerate(extracted)]
-        selected_sections = st.multiselect("Choose section(s) to create class from", all_sections)
-
-        run_type = st.session_state.get("run_type", "")
-        col1, col2 = st.columns(2)
-        if col1.button("Create QuickByte"):
-            st.session_state.run_type = "QuickByte"
-        if col2.button("Create FastTrack", disabled=len(selected_sections) < 1):
-            st.session_state.run_type = "FastTrack"
-
-        if "run_type" in st.session_state and st.session_state.run_type:
-            selected_indices = [int(s.split(".")[0]) - 1 for s in selected_sections]
-            selected_content = "\n\n".join(extracted[i][1] for i in selected_indices)
-
-            with st.spinner("Generating design document..."):
+    with st.spinner("Searching documents..."):
+        chunk_size = 20
+        chunks = ["
+".join(all_text_blocks[i:i+chunk_size]) for i in range(0, len(all_text_blocks), chunk_size)]
+        relevant_sections = []
+        for chunk in chunks:
+            try:
                 response = openai.chat.completions.create(
                     model="gpt-4.1-mini",
                     messages=[
-                        {"role": "system", "content": "You are an expert instructional designer creating a class design document in markdown format."},
-                        {"role": "user", "content": f"Create a class design document using markdown syntax. The format should include a title, duration, audience, learning objectives, required materials, preparation, instructor notes, and detailed step-by-step teaching plan. Base the content on:
+                        {"role": "system", "content": "You extract and rewrite user-relevant content from technical files."},
+                        {"role": "user", "content": f"Extract any content relevant to the topic: {search_query}
 
-\n\n{selected_content}"} ] ) md_output = response.choices[0].message.content st.divider() st.subheader("Step 3: Class Design Document") st.download_button("Download Design Document (Markdown)", data=md_output, file_name=f"class_design_{timestamp}.md") st.code(md_output, language="markdown")
+CONTENT:
+{chunk}"}
+                    ]
+                )
+                answer = response.choices[0].message.content.strip()
+                if answer:
+                    relevant_sections.append(answer)
+            except Exception as e:
+                relevant_sections.append(f"(Error in extraction: {str(e)})")
 
+        full_result = "
+
+".join(relevant_sections)
+        st.session_state.search_results = full_result
+
+# Step 2: Convert Search Result to Class Content
+if "search_results" in st.session_state and st.session_state.search_results:
+    st.markdown("### Step 2: Create Training Content from Search Result")
+
+    run_type = st.session_state.get("run_type", "")
+    col1, col2 = st.columns(2)
+    if col1.button("Create QuickByte"):
+        st.session_state.run_type = "QuickByte"
+    if col2.button("Create FastTrack"):
+        st.session_state.run_type = "FastTrack"
+
+    if "run_type" in st.session_state and st.session_state.run_type:
+        selected_content = st.session_state.search_results
+        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+
+        with st.spinner("Generating training materials..."):
+            outline_response = openai.chat.completions.create(
+                model="gpt-4.1-mini",
+                messages=[
+                    {"role": "system", "content": "You are an expert instructional designer."},
+                    {"role": "user", "content": f"Create an outline with learning objectives for a {'15-minute QuickByte' if st.session_state.run_type == 'QuickByte' else '30-minute FastTrack'} class based on this:
+{selected_content}"},
+                ]
+            )
+
+            script_response = openai.chat.completions.create(
+                model="gpt-4.1-mini",
+                messages=[
+                    {"role": "system", "content": "You are a professional e-learning narrator."},
+                    {"role": "user", "content": f"Write a narration script for a video based on this content:
+{selected_content}"},
+                ]
+            )
+
+            tips_prompt = (
+                "Generate exactly 5 email tips based on the following training content."
+                " Each tip should be in this format:
+"
+                "Tip X: [Title]
+Benefit: [Why it's useful]
+Steps:
+1. ...
+2. ...
+3. ..."
+            )
+
+            tips_response = openai.chat.completions.create(
+                model="gpt-4.1-mini",
+                messages=[
+                    {"role": "system", "content": "You are an instructional content expert."},
+                    {"role": "user", "content": f"{tips_prompt}
+
+CONTENT:
+{selected_content}"}
+                ]
+            )
+
+            outline_text = outline_response.choices[0].message.content
+            script_text = script_response.choices[0].message.content
+            tips_text = tips_response.choices[0].message.content
+
+            def create_word_doc(text, filename):
+                doc = Document()
+                doc.add_paragraph(text)
+                temp_path = os.path.join(tempfile.gettempdir(), filename)
+                doc.save(temp_path)
+                return temp_path
+
+            def create_text_file(text, filename):
+                temp_path = os.path.join(tempfile.gettempdir(), filename)
+                with open(temp_path, "w", encoding="utf-8") as f:
+                    f.write(text)
+                return temp_path
+
+            outline_file = create_word_doc(outline_text, f"class_outline_{timestamp}.docx")
+            script_file = create_text_file(script_text, f"narration_script_{timestamp}.txt")
+
+            tip_pattern = r"Tip\s+(\d+):\s*(.*?)\s*(?=Tip\s+\d+:|\Z)"
+            tip_blocks = re.findall(tip_pattern, tips_text, re.DOTALL)
+            tips = [f"Tip {num}:\n{body.strip()}" for num, body in tip_blocks if body.strip()][:5]
+
+            tip_files = []
+            for i, tip in enumerate(tips):
+                tip_filename = f"email_tip_{i+1}_{timestamp}.docx"
+                tip_path = create_word_doc(tip, tip_filename)
+                tip_files.append((f"Email Tip {i+1}", tip, tip_path))
+
+            tip_zip = io.BytesIO()
+            with zipfile.ZipFile(tip_zip, "w") as zipf:
+                for _, _, path in tip_files:
+                    zipf.write(path, os.path.basename(path))
+            tip_zip.seek(0)
+
+            st.session_state.generated = True
+            st.session_state.timestamp = timestamp
+            st.session_state.tabs = {
+                "Outline": (outline_text, outline_file),
+                "Narration": (script_text, script_file),
+                "Email Tips": (tips, tip_zip)
+            }
+
+# Step 3: Display Output
+if st.session_state.get("generated"):
+    tabs = st.tabs(["Outline", "Narration", "Email Tips"])
+
+    with tabs[0]:
+        tab_content, tab_file = st.session_state.tabs["Outline"]
+        with open(tab_file, "rb") as f:
+            st.download_button(label="Download Class Outline", data=f, file_name=os.path.basename(tab_file))
+        st.markdown(tab_content)
+
+    with tabs[1]:
+        tab_content, tab_file = st.session_state.tabs["Narration"]
+        with open(tab_file, "rb") as f:
+            st.download_button(label="Download Narration Script", data=f, file_name=os.path.basename(tab_file))
+        st.markdown(tab_content)
+
+    with tabs[2]:
+        tip_texts, tip_zip = st.session_state.tabs["Email Tips"]
+        st.download_button("Download All Email Tips", data=tip_zip, file_name=f"email_tips_{st.session_state.timestamp}.zip")
+        for i, tip in enumerate(tip_texts):
+            st.markdown(f"**Tip {i+1}:** {tip}")
