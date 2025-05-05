@@ -16,7 +16,8 @@ st.title("📘 AI Training Content App")
 
 uploaded_files = st.file_uploader("Upload one or more documents (PDF or DOCX)", type=["pdf", "docx"], accept_multiple_files=True)
 
-selected_sections = [] all_text_blocks = []
+selected_sections = []
+all_text_blocks = []
 
 Helper: Extract text from uploaded files
 
