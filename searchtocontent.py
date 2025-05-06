@@ -1,4 +1,3 @@
-
 import streamlit as st
 import os
 import tempfile
@@ -11,8 +10,9 @@ import io
 import re
 
 openai.api_key = st.secrets["OPENAI_API_KEY"]
+
 st.set_page_config(layout="wide")
-st.title("AI Training Content App with Search Integration")
+st.title("ðŸ“˜ AI Training Content App with Search Integration")
 
 uploaded_files = st.file_uploader("Upload one or more source documents (PDF or DOCX)", type=["pdf", "docx"], accept_multiple_files=True)
 
@@ -29,7 +29,7 @@ def extract_text_from_pdf(file_path):
 
 def extract_text_from_docx(file_path):
     doc = Document(file_path)
-    return "".join(p.text for p in doc.paragraphs if p.text.strip())
+    return " ".join(p.text for p in doc.paragraphs if p.text.strip())
 
 if uploaded_files:
     for uploaded_file in uploaded_files:
@@ -50,16 +50,12 @@ if uploaded_files:
     query = st.text_input("What content are you looking for?")
     if query and document_chunks:
         with st.spinner("Finding relevant content..."):
-            combined_text = "".join([text for _, text in document_chunks])
+            combined_text = "  ".join([text for _, text in document_chunks])
             response = openai.chat.completions.create(
                 model="gpt-4.1-mini",
                 messages=[
                     {"role": "system", "content": "You are a document analyst that extracts relevant training content."},
-                    {"role": "user", "content": f"Find all the relevant information based on this prompt:
-{query}
-
-From this content:
-{combined_text}"}
+                    {"role": "user", "content": f"Find all the relevant information based on this prompt: {query}  From this content: {combined_text}"}
                 ]
             )
             result = response.choices[0].message.content
@@ -85,24 +81,27 @@ if "search_result" in st.session_state:
                 model="gpt-4.1-mini",
                 messages=[
                     {"role": "system", "content": "You are an expert instructional designer."},
-                    {"role": "user", "content": f"Create a detailed outline for a {st.session_state.run_type} class based on this:
-{selected_text}"}
+                    {"role": "user", "content": f"Create a detailed outline for a {st.session_state.run_type} class based on this: {selected_text}"}
                 ]
             )
             script_response = openai.chat.completions.create(
                 model="gpt-4.1-mini",
                 messages=[
                     {"role": "system", "content": "You are a professional training narrator."},
-                    {"role": "user", "content": f"Write a narration script for a video class based on this:
-{selected_text}"}
+                    {"role": "user", "content": f"Write a narration script for a video class based on this: {selected_text}"}
                 ]
             )
             tips_response = openai.chat.completions.create(
                 model="gpt-4.1-mini",
                 messages=[
                     {"role": "system", "content": "You are an expert trainer."},
-                    {"role": "user", "content": f"Generate 5 email tips based on this content. Each tip should be clearly separated by 'Tip X:' and include a benefit and step-by-step instructions:
-{selected_text}"}
+                    {"role": "user", "content": (
+                        "Generate 5 email tips based on this content. "
+                        "Each tip should be clearly separated by 'Tip X:' and include a benefit and step-by-step instructions.
+
+"
+                        f"{selected_text}"
+                    )}
                 ]
             )
 
@@ -126,9 +125,9 @@ if "search_result" in st.session_state:
             outline_file = save_docx(outline, f"outline_{timestamp}.docx")
             script_file = save_txt(script, f"script_{timestamp}.txt")
 
-            tip_blocks = re.findall(r"Tip\s+\d+:(.*?)(?=Tip\s+\d+:|\Z)", tips_text, re.DOTALL)
-            tips = [f"Tip {i+1}:
-{block.strip()}" for i, block in enumerate(tip_blocks)][:5]
+            tip_pattern = r"Tip\s+(\d+):(.*?)(?=Tip\s+\d+:|\Z)"
+            tip_blocks = re.findall(tip_pattern, tips_text, re.DOTALL)
+            tips = [f"Tip {i+1}:{block.strip()}" for i, (_, block) in enumerate(tip_blocks)][:5]
 
             tip_paths = []
             for i, tip in enumerate(tips):
