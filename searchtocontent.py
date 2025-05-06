@@ -51,14 +51,17 @@ if uploaded_files:
     if query and document_chunks and "search_topics" not in st.session_state:
         with st.spinner("Finding relevant topics..."):
             combined_text = "  ".join([text for _, text in document_chunks])
+            user_prompt = f"""From this content:
+
+{combined_text}
+
+What topics are relevant to this query: {query}
+"""
             response = openai.chat.completions.create(
                 model="gpt-4.1-mini",
                 messages=[
                     {"role": "system", "content": "You are a document analyst. Extract a list of specific, self-contained topics based on the query. Format as a numbered or bullet list."},
-                    {"role": "user", "content": f"From this content:
-{combined_text}
-
-What topics are relevant to this query: {query}"}
+                    {"role": "user", "content": user_prompt}
                 ]
             )
             topics = response.choices[0].message.content
@@ -71,15 +74,19 @@ if "search_topics" in st.session_state:
     selected = st.multiselect("Pick the topics you'd like to include:", st.session_state.search_topics)
     if selected:
         with st.spinner("Extracting selected content..."):
+            selection_prompt = f"""Extract detailed content for these selected topics:
+
+{selected}
+
+From the following documents:
+
+{st.session_state.full_text}
+"""
             content_response = openai.chat.completions.create(
                 model="gpt-4.1-mini",
                 messages=[
                     {"role": "system", "content": "You extract training content from documents."},
-                    {"role": "user", "content": f"Extract detailed content for these selected topics:
-{selected}
-
-From the following documents:
-{st.session_state.full_text}"}
+                    {"role": "user", "content": selection_prompt}
                 ]
             )
             st.session_state.selected_text = content_response.choices[0].message.content
@@ -100,28 +107,37 @@ if "selected_text" in st.session_state:
         timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
 
         with st.spinner("Generating training content..."):
+            outline_prompt = f"""Create a detailed outline with learning objectives for a {st.session_state.run_type} class based on this:
+
+{selected_text}
+"""
+            script_prompt = f"""Write a narration script for a video class based on this:
+
+{selected_text}
+"""
+            tips_prompt = f"""Generate 5 email tips based on this content. Each tip should be clearly separated by 'Tip X:' and include a benefit and step-by-step instructions:
+
+{selected_text}
+"""
             outline_response = openai.chat.completions.create(
                 model="gpt-4.1-mini",
                 messages=[
                     {"role": "system", "content": "You are an expert instructional designer."},
-                    {"role": "user", "content": f"Create a detailed outline with learning objectives for a {st.session_state.run_type} class based on this:
-{selected_text}"}
+                    {"role": "user", "content": outline_prompt}
                 ]
             )
             script_response = openai.chat.completions.create(
                 model="gpt-4.1-mini",
                 messages=[
                     {"role": "system", "content": "You are a professional training narrator."},
-                    {"role": "user", "content": f"Write a narration script for a video class based on this:
-{selected_text}"}
+                    {"role": "user", "content": script_prompt}
                 ]
             )
             tips_response = openai.chat.completions.create(
                 model="gpt-4.1-mini",
                 messages=[
                     {"role": "system", "content": "You are an expert trainer."},
-                    {"role": "user", "content": f"Generate 5 email tips based on this content. Each tip should be clearly separated by 'Tip X:' and include a benefit and step-by-step instructions:
-{selected_text}"}
+                    {"role": "user", "content": tips_prompt}
                 ]
             )
 
