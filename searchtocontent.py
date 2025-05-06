@@ -55,17 +55,17 @@ if uploaded_files:
                 model="gpt-4.1-mini",
                 messages=[
                     {"role": "system", "content": "You are a document analyst that extracts relevant training content."},
-                    {"role": "user", "content": f"Extract a list of major topics and corresponding content relevant to this query: {query}  From this content: {combined_text}"}
+                    {"role": "user", "content": f"Find all the relevant information based on this prompt: {query}  From this content: {combined_text}"}
                 ]
             )
             result = response.choices[0].message.content
-            st.session_state.extracted_topics = re.findall(r"### (.*?)\n(.+?)(?=(?:\n### |\Z))", result, re.DOTALL)
+            st.session_state.search_result = result
             st.success("Content found.")
 
-if "extracted_topics" in st.session_state:
-    st.markdown("### Step 2: Select Topics for Training Content")
-    all_sections = [f"{i+1}. {topic.strip()}" for i, (topic, _) in enumerate(st.session_state.extracted_topics)]
-    selected_sections = st.multiselect("Choose section(s) to include", all_sections)
+if "search_result" in st.session_state:
+    st.markdown("### Step 2: Create Training Content")
+    selected_text = st.session_state.search_result
+    st.text_area("Selected Content", selected_text, height=200)
 
     col1, col2 = st.columns(2)
     if col1.button("Create QuickByte"):
@@ -73,14 +73,7 @@ if "extracted_topics" in st.session_state:
     if col2.button("Create FastTrack"):
         st.session_state.run_type = "FastTrack"
 
-    if "run_type" in st.session_state and selected_sections:
-        selected_indices = [int(s.split(".")[0]) - 1 for s in selected_sections]
-        relevant_text = []
-        for i in selected_indices:
-            topic, text = st.session_state.extracted_topics[i]
-            relevant_text.append(f"{topic}
-{text}")
-        selected_text = "\n\n".join(relevant_text)
+    if "run_type" in st.session_state:
         timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
 
         with st.spinner("Generating training content..."):
