@@ -97,7 +97,7 @@ if "search_result" in st.session_state:
                     {"role": "system", "content": "You are an expert trainer."},
                     {"role": "user", "content": (
                         "Generate 5 email tips based on this content. "
-                        "Each tip should be clearly separated by 'Tip X:' and include a benefit and step-by-step instructions.
+                        Each tip should be clearly separated by 'Tip X:' and include a benefit and step-by-step instructions.
 
 "
                         f"{selected_text}"
