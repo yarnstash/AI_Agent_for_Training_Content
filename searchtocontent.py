@@ -68,9 +68,7 @@ if uploaded_files:
                     relevant_text.append(f"{topic}
 " + content.split(topic, 1)[-1].split("
 ", 1)[-1])
-        selected_text = "
-
-".join(relevant_text)
+        selected_text = "".join(relevant_text)
 
         if "run_type" not in st.session_state:
             col1, col2 = st.columns(2)
