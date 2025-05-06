@@ -104,21 +104,24 @@ if "selected_text" in st.session_state:
                 model="gpt-4.1-mini",
                 messages=[
                     {"role": "system", "content": "You are an expert instructional designer."},
-                    {"role": "user", "content": f"Create a detailed outline with learning objectives for a {st.session_state.run_type} class based on this: {selected_text}"}
+                    {"role": "user", "content": f"Create a detailed outline with learning objectives for a {st.session_state.run_type} class based on this:
+{selected_text}"}
                 ]
             )
             script_response = openai.chat.completions.create(
                 model="gpt-4.1-mini",
                 messages=[
                     {"role": "system", "content": "You are a professional training narrator."},
-                    {"role": "user", "content": f"Write a narration script for a video class based on this: {selected_text}"}
+                    {"role": "user", "content": f"Write a narration script for a video class based on this:
+{selected_text}"}
                 ]
             )
             tips_response = openai.chat.completions.create(
                 model="gpt-4.1-mini",
                 messages=[
                     {"role": "system", "content": "You are an expert trainer."},
-                    {"role": "user", "content": f"Generate 5 email tips based on this content. Each tip should be clearly separated by 'Tip X:' and include a benefit and step-by-step instructions: {selected_text}"}
+                    {"role": "user", "content": f"Generate 5 email tips based on this content. Each tip should be clearly separated by 'Tip X:' and include a benefit and step-by-step instructions:
+{selected_text}"}
                 ]
             )
 
