@@ -12,7 +12,7 @@ import re
 openai.api_key = st.secrets["OPENAI_API_KEY"]
 
 st.set_page_config(layout="wide")
-st.title("ðŸ“˜ AI Training Content App with Search Integration")
+st.title(" AI Training Content App with Search Integration")
 
 uploaded_files = st.file_uploader("Upload one or more source documents (PDF or DOCX)", type=["pdf", "docx"], accept_multiple_files=True)
 
@@ -95,13 +95,7 @@ if "search_result" in st.session_state:
                 model="gpt-4.1-mini",
                 messages=[
                     {"role": "system", "content": "You are an expert trainer."},
-                    {"role": "user", "content": (
-                        "Generate 5 email tips based on this content. "
-                        Each tip should be clearly separated by 'Tip X:' and include a benefit and step-by-step instructions.
-
-"
-                        f"{selected_text}"
-                    )}
+                    {"role": "user", "content": f"Generate 5 email tips based on this content. Each tip should be clearly separated by 'Tip X:' and include a benefit and step-by-step instructions: {selected_text}"}
                 ]
             )
 
@@ -125,9 +119,8 @@ if "search_result" in st.session_state:
             outline_file = save_docx(outline, f"outline_{timestamp}.docx")
             script_file = save_txt(script, f"script_{timestamp}.txt")
 
-            tip_pattern = r"Tip\s+(\d+):(.*?)(?=Tip\s+\d+:|\Z)"
-            tip_blocks = re.findall(tip_pattern, tips_text, re.DOTALL)
-            tips = [f"Tip {i+1}:{block.strip()}" for i, (_, block) in enumerate(tip_blocks)][:5]
+            tip_blocks = re.findall(r"Tip\s+\d+:(.*?)(?=Tip\s+\d+:|\Z)", tips_text, re.DOTALL)
+            tips = [f"Tip {i+1}: {block.strip()}" for i, block in enumerate(tip_blocks)][:5]
 
             tip_paths = []
             for i, tip in enumerate(tips):
