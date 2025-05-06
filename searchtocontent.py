@@ -1,3 +1,4 @@
+
 import streamlit as st
 import os
 import tempfile
@@ -12,7 +13,7 @@ import re
 openai.api_key = st.secrets["OPENAI_API_KEY"]
 
 st.set_page_config(layout="wide")
-st.title("ðŸ“˜ AI Training Content App with Search Integration")
+st.title("ðŸ“˜ AI Training Content App with Search + Topic Picker")
 
 uploaded_files = st.file_uploader("Upload one or more source documents (PDF or DOCX)", type=["pdf", "docx"], accept_multiple_files=True)
 
@@ -49,22 +50,38 @@ if uploaded_files:
 
     query = st.text_input("What content are you looking for?")
     if query and document_chunks:
-        with st.spinner("Finding relevant content..."):
+        with st.spinner("Finding relevant topics..."):
             combined_text = "  ".join([text for _, text in document_chunks])
             response = openai.chat.completions.create(
                 model="gpt-4.1-mini",
                 messages=[
-                    {"role": "system", "content": "You are a document analyst that extracts relevant training content."},
-                    {"role": "user", "content": f"Find all the relevant information based on this prompt: {query}  From this content: {combined_text}"}
+                    {"role": "system", "content": "You are a document analyst. Extract a list of specific, self-contained topics based on the query. Format as a numbered or bullet list."},
+                    {"role": "user", "content": f"From this content:\n{combined_text}\n\nWhat topics are relevant to this query: {query}"}
                 ]
             )
-            result = response.choices[0].message.content
-            st.session_state.search_result = result
-            st.success("Content found.")
+            topics = response.choices[0].message.content
+            topic_lines = [line.strip("â€¢-1234567890. ") for line in topics.strip().splitlines() if line.strip()]
+            st.session_state.search_topics = topic_lines
+            st.session_state.full_text = combined_text
 
-if "search_result" in st.session_state:
-    st.markdown("### Step 2: Create Training Content")
-    selected_text = st.session_state.search_result
+if "search_topics" in st.session_state:
+    st.markdown("### Step 2: Choose Topics for Your Class")
+    selected = st.multiselect("Pick the topics you'd like to include:", st.session_state.search_topics)
+    if selected:
+        with st.spinner("Extracting selected content..."):
+            content_response = openai.chat.completions.create(
+                model="gpt-4.1-mini",
+                messages=[
+                    {"role": "system", "content": "You extract training content from documents."},
+                    {"role": "user", "content": f"Extract detailed content for these selected topics:\n{selected}\n\nFrom the following documents:\n{st.session_state.full_text}"}
+                ]
+            )
+            st.session_state.selected_text = content_response.choices[0].message.content
+            st.success("Content extracted.")
+
+if "selected_text" in st.session_state:
+    st.markdown("### Step 3: Generate Training Materials")
+    selected_text = st.session_state.selected_text
     st.text_area("Selected Content", selected_text, height=200)
 
     col1, col2 = st.columns(2)
@@ -81,7 +98,7 @@ if "search_result" in st.session_state:
                 model="gpt-4.1-mini",
                 messages=[
                     {"role": "system", "content": "You are an expert instructional designer."},
-                    {"role": "user", "content": f"Create a detailed outline for a {st.session_state.run_type} class based on this: {selected_text}"}
+                    {"role": "user", "content": f"Create a detailed outline with learning objectives for a {st.session_state.run_type} class based on this: {selected_text}"}
                 ]
             )
             script_response = openai.chat.completions.create(
@@ -112,7 +129,7 @@ if "search_result" in st.session_state:
 
             def save_txt(text, filename):
                 path = os.path.join(tempfile.gettempdir(), filename)
-                with open(path, "w") as f:
+                with open(path, "w", encoding="utf-8") as f:
                     f.write(text)
                 return path
 
