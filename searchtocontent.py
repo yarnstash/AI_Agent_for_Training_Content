@@ -12,7 +12,7 @@ import re
 
 openai.api_key = st.secrets["OPENAI_API_KEY"]
 st.set_page_config(layout="wide")
-st.title("ðŸ“˜ AI Training Content App with Search Integration")
+st.title("AI Training Content App with Search Integration")
 
 uploaded_files = st.file_uploader("Upload one or more source documents (PDF or DOCX)", type=["pdf", "docx"], accept_multiple_files=True)
 
@@ -29,8 +29,7 @@ def extract_text_from_pdf(file_path):
 
 def extract_text_from_docx(file_path):
     doc = Document(file_path)
-    return "
-".join(p.text for p in doc.paragraphs if p.text.strip())
+    return "".join(p.text for p in doc.paragraphs if p.text.strip())
 
 if uploaded_files:
     for uploaded_file in uploaded_files:
@@ -51,9 +50,7 @@ if uploaded_files:
     query = st.text_input("What content are you looking for?")
     if query and document_chunks:
         with st.spinner("Finding relevant content..."):
-            combined_text = "
-
-".join([text for _, text in document_chunks])
+            combined_text = "".join([text for _, text in document_chunks])
             response = openai.chat.completions.create(
                 model="gpt-4.1-mini",
                 messages=[
