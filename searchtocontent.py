@@ -1,4 +1,3 @@
-
 import streamlit as st
 import os
 import tempfile
@@ -49,14 +48,17 @@ if uploaded_files:
     st.success("Files uploaded and content extracted.")
 
     query = st.text_input("What content are you looking for?")
-    if query and document_chunks:
+    if query and document_chunks and "search_topics" not in st.session_state:
         with st.spinner("Finding relevant topics..."):
             combined_text = "  ".join([text for _, text in document_chunks])
             response = openai.chat.completions.create(
                 model="gpt-4.1-mini",
                 messages=[
                     {"role": "system", "content": "You are a document analyst. Extract a list of specific, self-contained topics based on the query. Format as a numbered or bullet list."},
-                    {"role": "user", "content": f"From this content:\n{combined_text}\n\nWhat topics are relevant to this query: {query}"}
+                    {"role": "user", "content": f"From this content:
+{combined_text}
+
+What topics are relevant to this query: {query}"}
                 ]
             )
             topics = response.choices[0].message.content
@@ -73,7 +75,11 @@ if "search_topics" in st.session_state:
                 model="gpt-4.1-mini",
                 messages=[
                     {"role": "system", "content": "You extract training content from documents."},
-                    {"role": "user", "content": f"Extract detailed content for these selected topics:\n{selected}\n\nFrom the following documents:\n{st.session_state.full_text}"}
+                    {"role": "user", "content": f"Extract detailed content for these selected topics:
+{selected}
+
+From the following documents:
+{st.session_state.full_text}"}
                 ]
             )
             st.session_state.selected_text = content_response.choices[0].message.content
