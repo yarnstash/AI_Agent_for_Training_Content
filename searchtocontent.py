@@ -50,9 +50,7 @@ if uploaded_files:
     query = st.text_input("What content are you looking for?")
     if query and document_chunks:
         with st.spinner("Finding relevant content..."):
-            combined_text = "
-
-".join([text for _, text in document_chunks])
+            combined_text = "".join([text for _, text in document_chunks])
             response = openai.chat.completions.create(
                 model="gpt-4.1-mini",
                 messages=[
