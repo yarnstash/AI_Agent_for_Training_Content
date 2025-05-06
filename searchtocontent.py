@@ -29,8 +29,7 @@ def extract_text_from_pdf(file_path):
 
 def extract_text_from_docx(file_path):
     doc = Document(file_path)
-    return "
-".join(p.text for p in doc.paragraphs if p.text.strip())
+    return "".join(p.text for p in doc.paragraphs if p.text.strip())
 
 if uploaded_files:
     for uploaded_file in uploaded_files:
