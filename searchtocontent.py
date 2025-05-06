@@ -1,3 +1,4 @@
+
 import streamlit as st
 import os
 import tempfile
@@ -9,14 +10,10 @@ import zipfile
 import io
 import re
 
-# Set OpenAI API key
 openai.api_key = st.secrets["OPENAI_API_KEY"]
-
-# Streamlit app configuration
 st.set_page_config(layout="wide")
-st.title("📚 AI Training Content App with Search Integration")
+st.title("ðŸ“˜ AI Training Content App with Search Integration")
 
-# File uploader
 uploaded_files = st.file_uploader("Upload one or more source documents (PDF or DOCX)", type=["pdf", "docx"], accept_multiple_files=True)
 
 selected_sections = []
@@ -32,7 +29,8 @@ def extract_text_from_pdf(file_path):
 
 def extract_text_from_docx(file_path):
     doc = Document(file_path)
-    return "".join(p.text for p in doc.paragraphs if p.text.strip())
+    return "
+".join(p.text for p in doc.paragraphs if p.text.strip())
 
 if uploaded_files:
     for uploaded_file in uploaded_files:
@@ -41,29 +39,33 @@ if uploaded_files:
             tmp_file.write(uploaded_file.read())
             tmp_path = tmp_file.name
 
-        try:
-            if suffix == ".pdf":
-                extracted_text = extract_text_from_pdf(tmp_path)
-            else:
-                extracted_text = extract_text_from_docx(tmp_path)
-            document_chunks.append((uploaded_file.name, extracted_text))
-        finally:
-            os.remove(tmp_path)  # Cleanup temporary file
+        if suffix == ".pdf":
+            extracted_text = extract_text_from_pdf(tmp_path)
+        else:
+            extracted_text = extract_text_from_docx(tmp_path)
+
+        document_chunks.append((uploaded_file.name, extracted_text))
 
     st.success("Files uploaded and content extracted.")
 
     query = st.text_input("What content are you looking for?")
     if query and document_chunks:
         with st.spinner("Finding relevant content..."):
-            combined_text = "".join([text for _, text in document_chunks])
-            response = openai.ChatCompletion.create(
+            combined_text = "
+
+".join([text for _, text in document_chunks])
+            response = openai.chat.completions.create(
                 model="gpt-4.1-mini",
                 messages=[
                     {"role": "system", "content": "You are a document analyst that extracts relevant training content."},
-                    {"role": "user", "content": f"Find all the relevant information based on this prompt:\n{query}\n\nFrom this content:\n{combined_text}"}
+                    {"role": "user", "content": f"Find all the relevant information based on this prompt:
+{query}
+
+From this content:
+{combined_text}"}
                 ]
             )
-            result = response.choices[0].message["content"]
+            result = response.choices[0].message.content
             st.session_state.search_result = result
             st.success("Content found.")
 
@@ -82,31 +84,34 @@ if "search_result" in st.session_state:
         timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
 
         with st.spinner("Generating training content..."):
-            outline_response = openai.ChatCompletion.create(
+            outline_response = openai.chat.completions.create(
                 model="gpt-4.1-mini",
                 messages=[
                     {"role": "system", "content": "You are an expert instructional designer."},
-                    {"role": "user", "content": f"Create a detailed outline for a {st.session_state.run_type} class based on this:\n{selected_text}"}
+                    {"role": "user", "content": f"Create a detailed outline for a {st.session_state.run_type} class based on this:
+{selected_text}"}
                 ]
             )
-            script_response = openai.ChatCompletion.create(
+            script_response = openai.chat.completions.create(
                 model="gpt-4.1-mini",
                 messages=[
                     {"role": "system", "content": "You are a professional training narrator."},
-                    {"role": "user", "content": f"Write a narration script for a video class based on this:\n{selected_text}"}
+                    {"role": "user", "content": f"Write a narration script for a video class based on this:
+{selected_text}"}
                 ]
             )
-            tips_response = openai.ChatCompletion.create(
+            tips_response = openai.chat.completions.create(
                 model="gpt-4.1-mini",
                 messages=[
                     {"role": "system", "content": "You are an expert trainer."},
-                    {"role": "user", "content": f"Generate 5 email tips based on this content. Each tip should be clearly separated by 'Tip X:' and include a benefit and step-by-step instructions:\n{selected_text}"}
+                    {"role": "user", "content": f"Generate 5 email tips based on this content. Each tip should be clearly separated by 'Tip X:' and include a benefit and step-by-step instructions:
+{selected_text}"}
                 ]
             )
 
-            outline = outline_response.choices[0].message["content"]
-            script = script_response.choices[0].message["content"]
-            tips_text = tips_response.choices[0].message["content"]
+            outline = outline_response.choices[0].message.content
+            script = script_response.choices[0].message.content
+            tips_text = tips_response.choices[0].message.content
 
             def save_docx(text, filename):
                 path = os.path.join(tempfile.gettempdir(), filename)
@@ -125,7 +130,8 @@ if "search_result" in st.session_state:
             script_file = save_txt(script, f"script_{timestamp}.txt")
 
             tip_blocks = re.findall(r"Tip\s+\d+:(.*?)(?=Tip\s+\d+:|\Z)", tips_text, re.DOTALL)
-            tips = [f"Tip {i+1}:\n{block.strip()}" for i, block in enumerate(tip_blocks)][:5]
+            tips = [f"Tip {i+1}:
+{block.strip()}" for i, block in enumerate(tip_blocks)][:5]
 
             tip_paths = []
             for i, tip in enumerate(tips):
