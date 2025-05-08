@@ -132,8 +132,15 @@ From the following documents:
                 doc = Document(template_path)
                 clear_below_first_table(doc)
 
-                                doc.add_paragraph("OVERVIEW", style=safe_style(doc, "IT Heading 1"))
-                doc.add_paragraph(overview, style=safe_style(doc, "IT Body Text"))
+                # Set margins: Top 0.5", Bottom 0.6", Left/Right 0.5"
+                section = doc.sections[0]
+                section.top_margin = Inches(0.5)
+                section.bottom_margin = Inches(0.6)
+                section.left_margin = Inches(0.5)
+                section.right_margin = Inches(0.5)
+
+            doc.add_paragraph("OVERVIEW", style=safe_style(doc, "IT Heading 1"))
+            doc.add_paragraph(overview, style=safe_style(doc, "IT Body Text"))
 
                 for line in steps.strip().split("\n"):
                     line = line.strip()
