@@ -111,29 +111,29 @@ From the following documents:
                 except KeyError:
                     return fallback
 
-            def clear_after_table(doc):
-                tbl = doc.tables[0]
-                last_cell = tbl.rows[-1].cells[-1]
-                start_clear = False
-                new_paras = []
-                for para in doc.paragraphs:
-                    if para._p.getparent().tag.endswith('tc'):
+            def clear_below_first_table(doc):
+                first_table = doc.tables[0]
+                last_tbl_elm = first_table._element
+                body_elm = doc._body._element
+                to_delete = []
+                found_table = False
+                for child in body_elm.iterchildren():
+                    if child == last_tbl_elm:
+                        found_table = True
                         continue
-                    if para._element.getprevious() is None and para._element.getparent().tag.endswith('body'):
-                        start_clear = True
-                    if start_clear:
-                        p = para._element
-                        p.getparent().remove(p)
-                return doc
+                    if found_table:
+                        to_delete.append(child)
+                for element in to_delete:
+                    body_elm.remove(element)
 
             def create_qref_docx(app, function, audience, version, overview, steps, tips, related, template_path):
                 doc = Document(template_path)
-                clear_after_table(doc)
+                clear_below_first_table(doc)
 
-                doc.add_paragraph("OVERVIEW", style=safe_style(doc, "IT Heading 1", "Heading 1"))
+                doc.add_paragraph("OVERVIEW", style=safe_style(doc, "IT Heading 1"))
                 doc.add_paragraph(overview, style=safe_style(doc, "IT Body Text"))
 
-                doc.add_paragraph("STEPS", style=safe_style(doc, "IT Heading 1", "Heading 1"))
+                doc.add_paragraph("STEPS", style=safe_style(doc, "IT Heading 1"))
                 for line in steps.strip().split("\n"):
                     line = line.strip()
                     if not line:
@@ -147,11 +147,11 @@ From the following documents:
 
                 doc.add_paragraph("TIPS & NOTES", style=safe_style(doc, "IT Heading 1"))
                 for tip in tips:
-                    doc.add_paragraph(tip, style=safe_style(doc, "IT Tip", "Intense Quote"))
+                    doc.add_paragraph(tip, style=safe_style(doc, "IT Tip"))
 
                 doc.add_paragraph("RELATED FEATURES", style=safe_style(doc, "IT Heading 1"))
                 for item in related:
-                    doc.add_paragraph(item, style=safe_style(doc, "IT Note", "List Bullet"))
+                    doc.add_paragraph(item, style=safe_style(doc, "IT Note"))
 
                 output = BytesIO()
                 doc.save(output)
