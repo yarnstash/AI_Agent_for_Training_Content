@@ -92,7 +92,10 @@ From the following documents:
             st.session_state.selected_text = content_response.choices[0].message.content
             st.success("Content extracted.")
 # === Generate QREF Markdown ===
+        selected_topic = ", ".join(selected)
+        matched_text = st.session_state.selected_text
         today = datetime.date.today().strftime("%B %d, %Y")
+
         qref_md = f"""### QREF: {selected_topic}
 
 **Application:** [App Name]  
@@ -137,6 +140,3 @@ From the following documents:
             file_name=f"QREF_{selected_topic}.md",
             mime="text/markdown"
         )
-
-elif search_query and not matched_sections:
-    st.warning("No matches found. Try a different keyword.")
