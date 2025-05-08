@@ -96,7 +96,29 @@ From the following documents:
         matched_text = st.session_state.selected_text
         today = datetime.date.today().strftime("%B %d, %Y")
 
-        qref_md = f"""### QREF: {selected_topic}
+        # Parse full output into OVERVIEW + the rest
+full_text = st.session_state.selected_text.strip()
+lines = full_text.splitlines()
+
+overview_lines = []
+body_lines = []
+
+for i, line in enumerate(lines):
+    if line.strip().startswith("### "):  # first heading, assume body starts here
+        overview_lines = lines[:i]
+        body_lines = lines[i:]
+        break
+else:
+    overview_lines = lines[:2]
+    body_lines = lines[2:]
+
+overview = " ".join(overview_lines).strip()
+steps = "\n".join(body_lines).strip()
+
+selected_topic = ", ".join(selected)
+today = datetime.date.today().strftime("%B %d, %Y")
+
+qref_md = f"""### QREF: {selected_topic}
 
 **Application:** [App Name]  
 **Function:** [Function or Module]  
@@ -106,17 +128,13 @@ From the following documents:
 ---
 
 #### OVERVIEW  
-{matched_text[:300]}...
+{overview}
 
 ---
 
 #### STEPS
 
-1. **First Action**  
-   [Insert first clear instruction here.]
-
-2. **Next Action**  
-   [Insert second instruction.]
+{steps}
 
 ---
 
@@ -130,7 +148,6 @@ From the following documents:
 
 - [Mention other relevant QREFs or tools.]
 """
-
         st.markdown("### QREF Preview")
         st.code(qref_md, language="markdown")
 
