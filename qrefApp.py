@@ -7,7 +7,6 @@ from docx import Document
 from docx.shared import Inches
 from io import BytesIO
 
-# âœ… Set page config FIRST
 st.set_page_config(layout="wide")
 st.title("AI Training Content App QREF")
 
@@ -132,23 +131,29 @@ From the following documents:
                 doc = Document(template_path)
                 clear_below_first_table(doc)
 
-                # Set margins: Top 0.5", Bottom 0.6", Left/Right 0.5"
+                # Set margins safely if available
+                if doc.sections:
+                    section = doc.sections[0]
+                    section.top_margin = Inches(0.5)
+                    section.bottom_margin = Inches(0.6)
+                    section.left_margin = Inches(0.5)
+                    section.right_margin = Inches(0.5)
 
                 doc.add_paragraph("OVERVIEW", style=safe_style(doc, "IT Heading 1"))
                 doc.add_paragraph(overview, style=safe_style(doc, "IT Body Text"))
 
+                current_list = None
                 for line in steps.strip().split("\n"):
                     line = line.strip()
                     if not line:
                         continue
                     if line.startswith("### "):
                         doc.add_paragraph(line.replace("###", "").strip(), style=safe_style(doc, "IT Heading 1"))
+                        current_list = None  # reset list
                     elif line.startswith("- "):
-                        p = doc.add_paragraph(line.strip("- ").strip(), style=safe_style(doc, "IT Number_1"))
-                        p.paragraph_format.keep_with_next = True
+                        current_list = doc.add_paragraph(line.strip("- ").strip(), style=safe_style(doc, "IT Number_1"))
                     else:
-                        p = doc.add_paragraph(line, style=safe_style(doc, "IT Number_1"))
-                        p.paragraph_format.keep_with_next = True
+                        current_list = doc.add_paragraph(line, style=safe_style(doc, "IT Number_1"))
 
                 doc.add_paragraph("TIPS & NOTES", style=safe_style(doc, "IT Heading 1"))
                 for tip in tips:
