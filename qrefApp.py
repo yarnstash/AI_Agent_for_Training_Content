@@ -4,7 +4,6 @@ import tempfile
 import openai
 import datetime
 from docx import Document
-from docx.shared import Inches
 from io import BytesIO
 
 openai.api_key = st.secrets["OPENAI_API_KEY"]
@@ -112,25 +111,25 @@ From the following documents:
                 except KeyError:
                     return fallback
 
+            def clear_after_table(doc):
+                tbl = doc.tables[0]
+                last_cell = tbl.rows[-1].cells[-1]
+                start_clear = False
+                new_paras = []
+                for para in doc.paragraphs:
+                    if para._p.getparent().tag.endswith('tc'):
+                        continue
+                    if para._element.getprevious() is None and para._element.getparent().tag.endswith('body'):
+                        start_clear = True
+                    if start_clear:
+                        p = para._element
+                        p.getparent().remove(p)
+                return doc
+
             def create_qref_docx(app, function, audience, version, overview, steps, tips, related, template_path):
                 doc = Document(template_path)
-                doc._body.clear_content()
+                clear_after_table(doc)
 
-                table = doc.add_table(rows=2, cols=4)
-                table.style = 'Table Grid'
-                hdr_cells = table.rows[0].cells
-                hdr_cells[0].text = "Application"
-                hdr_cells[1].text = "Function"
-                hdr_cells[2].text = "Audience"
-                hdr_cells[3].text = "Version"
-
-                val_cells = table.rows[1].cells
-                val_cells[0].text = app
-                val_cells[1].text = function
-                val_cells[2].text = audience
-                val_cells[3].text = version
-
-                doc.add_paragraph("")
                 doc.add_paragraph("OVERVIEW", style=safe_style(doc, "IT Heading 1", "Heading 1"))
                 doc.add_paragraph(overview, style=safe_style(doc, "IT Body Text"))
 
@@ -140,17 +139,17 @@ From the following documents:
                     if not line:
                         continue
                     if line.startswith("### "):
-                        doc.add_paragraph(line.replace("###", "").strip(), style=safe_style(doc, "IT Number_1", "List Number"))
+                        doc.add_paragraph(line.replace("###", "").strip(), style=safe_style(doc, "IT Heading 1"))
                     elif line.startswith("- "):
-                        doc.add_paragraph(line.strip("- ").strip(), style=safe_style(doc, "IT Body Text"))
+                        doc.add_paragraph(line.strip("- ").strip(), style=safe_style(doc, "IT Number_1"))
                     else:
-                        doc.add_paragraph(line, style=safe_style(doc, "IT Body Text"))
+                        doc.add_paragraph(line, style=safe_style(doc, "IT Number_1"))
 
-                doc.add_paragraph("TIPS & NOTES", style=safe_style(doc, "IT Heading 1", "Heading 1"))
+                doc.add_paragraph("TIPS & NOTES", style=safe_style(doc, "IT Heading 1"))
                 for tip in tips:
                     doc.add_paragraph(tip, style=safe_style(doc, "IT Tip", "Intense Quote"))
 
-                doc.add_paragraph("RELATED FEATURES", style=safe_style(doc, "IT Heading 2", "Heading 2"))
+                doc.add_paragraph("RELATED FEATURES", style=safe_style(doc, "IT Heading 1"))
                 for item in related:
                     doc.add_paragraph(item, style=safe_style(doc, "IT Note", "List Bullet"))
 
