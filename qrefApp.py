@@ -5,7 +5,6 @@ import openai
 import datetime
 from docx import Document
 from docx.shared import Inches
-from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
 from io import BytesIO
 
 openai.api_key = st.secrets["OPENAI_API_KEY"]
@@ -67,7 +66,7 @@ What topics are relevant to this query: {query}
 if "search_topics" in st.session_state:
     st.markdown("### Step 2: Choose Topics for Your Class")
     selected = st.multiselect("Pick the topics you'd like to include:", st.session_state.search_topics)
-    if selected:
+    if selected and "selected_text" not in st.session_state:
         with st.spinner("Extracting selected content..."):
             selection_prompt = f"""Extract detailed content for these selected topics:
 
@@ -87,8 +86,8 @@ From the following documents:
             st.session_state.selected_text = content_response.choices[0].message.content
             st.success("Content extracted.")
 
+    if selected and "selected_text" in st.session_state:
         if st.button("Generate QREF"):
-            # Parse the response content
             full_text = st.session_state.selected_text.strip()
             lines = full_text.splitlines()
             overview_lines, body_lines = [], []
@@ -103,17 +102,20 @@ From the following documents:
 
             overview = " ".join(overview_lines).strip()
             steps = "\n".join(body_lines).strip()
-
             selected_topic = ", ".join(selected)
             today = datetime.date.today().strftime("%B %d, %Y")
 
+            def safe_style(doc, style_name, fallback="Normal"):
+                try:
+                    doc.styles[style_name]
+                    return style_name
+                except KeyError:
+                    return fallback
+
             def create_qref_docx(app, function, audience, version, overview, steps, tips, related, template_path):
                 doc = Document(template_path)
-
-                # === Clear existing content but preserve styles ===
                 doc._body.clear_content()
 
-                # Header Table
                 table = doc.add_table(rows=2, cols=4)
                 table.style = 'Table Grid'
                 hdr_cells = table.rows[0].cells
@@ -129,29 +131,28 @@ From the following documents:
                 val_cells[3].text = version
 
                 doc.add_paragraph("")
+                doc.add_paragraph("OVERVIEW", style=safe_style(doc, "IT Heading 1", "Heading 1"))
+                doc.add_paragraph(overview, style=safe_style(doc, "IT Body Text"))
 
-                doc.add_paragraph("OVERVIEW", style="IT Heading 1")
-                doc.add_paragraph(overview, style="IT Step Text")
-
-                doc.add_paragraph("STEPS", style="IT Heading 1")
+                doc.add_paragraph("STEPS", style=safe_style(doc, "IT Heading 1", "Heading 1"))
                 for line in steps.strip().split("\n"):
                     line = line.strip()
                     if not line:
                         continue
                     if line.startswith("### "):
-                        doc.add_paragraph(line.replace("###", "").strip(), style="IT Numbered Step")
+                        doc.add_paragraph(line.replace("###", "").strip(), style=safe_style(doc, "IT Number_1", "List Number"))
                     elif line.startswith("- "):
-                        doc.add_paragraph(line.strip("- ").strip(), style="IT Step Text")
+                        doc.add_paragraph(line.strip("- ").strip(), style=safe_style(doc, "IT Body Text"))
                     else:
-                        doc.add_paragraph(line, style="IT Step Text")
+                        doc.add_paragraph(line, style=safe_style(doc, "IT Body Text"))
 
-                doc.add_paragraph("TIPS & NOTES", style="IT Heading 1")
+                doc.add_paragraph("TIPS & NOTES", style=safe_style(doc, "IT Heading 1", "Heading 1"))
                 for tip in tips:
-                    doc.add_paragraph(tip, style="IT Notes")
+                    doc.add_paragraph(tip, style=safe_style(doc, "IT Tip", "Intense Quote"))
 
-                doc.add_paragraph("RELATED FEATURES", style="IT Heading 1")
+                doc.add_paragraph("RELATED FEATURES", style=safe_style(doc, "IT Heading 2", "Heading 2"))
                 for item in related:
-                    doc.add_paragraph(item, style="IT Bullet")
+                    doc.add_paragraph(item, style=safe_style(doc, "IT Note", "List Bullet"))
 
                 output = BytesIO()
                 doc.save(output)
