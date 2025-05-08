@@ -142,14 +142,14 @@ From the following documents:
                 doc.add_paragraph("OVERVIEW", style=safe_style(doc, "IT Heading 1"))
                 doc.add_paragraph(overview, style=safe_style(doc, "IT Body Text"))
 
-                current_list = None
+                current_list = None  # reset numbered list per section
                 for line in steps.strip().split("\n"):
                     line = line.strip()
                     if not line:
                         continue
                     if line.startswith("### "):
                         doc.add_paragraph(line.replace("###", "").strip(), style=safe_style(doc, "IT Heading 1"))
-                        current_list = None  # reset list
+                        current_list = None  # reset numbered list per section  # reset list
                     elif line.startswith("- "):
                         current_list = doc.add_paragraph(line.strip("- ").strip(), style=safe_style(doc, "IT Number_1"))
                     else:
@@ -161,7 +161,7 @@ From the following documents:
 
                 doc.add_paragraph("RELATED FEATURES", style=safe_style(doc, "IT Heading 1"))
                 for item in related:
-                    doc.add_paragraph(item, style=safe_style(doc, "IT Note"))
+                    doc.add_paragraph(item, style=safe_style(doc, "IT Note"))  # related features
 
                 output = BytesIO()
                 doc.save(output)
