@@ -8,7 +8,7 @@ from docx.shared import Inches
 from io import BytesIO
 
 # âœ… Set page config FIRST
-st.set_page_config(layout="narrow")
+st.set_page_config(layout="wide")
 st.title("AI Training Content App QREF")
 
 openai.api_key = st.secrets["OPENAI_API_KEY"]
