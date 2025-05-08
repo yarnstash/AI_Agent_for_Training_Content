@@ -7,7 +7,6 @@ from docx import Document
 from docx.shared import Inches
 from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
 from io import BytesIO
-from docx.shared import Pt
 
 openai.api_key = st.secrets["OPENAI_API_KEY"]
 
@@ -16,7 +15,6 @@ st.title("AI Training Content App QREF")
 
 uploaded_files = st.file_uploader("Upload one or more source documents (PDF or DOCX)", type=["pdf", "docx"], accept_multiple_files=True)
 
-selected_sections = []
 document_chunks = []
 
 def extract_text_from_pdf(file_path):
@@ -25,7 +23,6 @@ def extract_text_from_pdf(file_path):
     return "\n".join(page.extract_text() or "" for page in reader.pages)
 
 def extract_text_from_docx(file_path):
-    from docx import Document
     doc = Document(file_path)
     return "\n".join(p.text for p in doc.paragraphs if p.text.strip())
 
@@ -107,20 +104,14 @@ From the following documents:
             overview = " ".join(overview_lines).strip()
             steps = "\n".join(body_lines).strip()
 
-            # Metadata
             selected_topic = ", ".join(selected)
             today = datetime.date.today().strftime("%B %d, %Y")
 
-            # === Create Word Doc ===
-            def create_qref_docx(app, function, audience, version, overview, steps, tips, related, logo_path=None):
-                doc = Document()
+            def create_qref_docx(app, function, audience, version, overview, steps, tips, related, template_path):
+                doc = Document(template_path)
 
-                # Add logo (if you have a logo image)
-                if logo_path:
-                    header = doc.sections[0].header
-                    paragraph = header.paragraphs[0]
-                    run = paragraph.add_run()
-                    run.add_picture(logo_path, width=Inches(1.2))
+                # === Clear existing content but preserve styles ===
+                doc._body.clear_content()
 
                 # Header Table
                 table = doc.add_table(rows=2, cols=4)
@@ -139,7 +130,6 @@ From the following documents:
 
                 doc.add_paragraph("")
 
-                # Content Sections
                 doc.add_paragraph("OVERVIEW", style="IT Heading 1")
                 doc.add_paragraph(overview, style="IT Step Text")
 
@@ -156,16 +146,19 @@ From the following documents:
                         doc.add_paragraph(line, style="IT Step Text")
 
                 doc.add_paragraph("TIPS & NOTES", style="IT Heading 1")
-                doc.add_paragraph("- [Add any helpful tips or reminders.]", style="IT Notes")
+                for tip in tips:
+                    doc.add_paragraph(tip, style="IT Notes")
 
                 doc.add_paragraph("RELATED FEATURES", style="IT Heading 1")
-                doc.add_paragraph("- [Mention other relevant QREFs or tools.]", style="IT Bullet")
+                for item in related:
+                    doc.add_paragraph(item, style="IT Bullet")
 
                 output = BytesIO()
                 doc.save(output)
                 output.seek(0)
                 return output
 
+            template_path = os.path.join("templates", "QREF_Template.docx")
             docx_file = create_qref_docx(
                 app="[App Name]",
                 function="[Function or Module]",
@@ -175,7 +168,7 @@ From the following documents:
                 steps=steps,
                 tips=["[Add any helpful tips or reminders.]"],
                 related=["[Mention other relevant QREFs or tools.]"],
-                logo_path=None  # Add logo path here if available
+                template_path=template_path
             )
 
             st.download_button(
