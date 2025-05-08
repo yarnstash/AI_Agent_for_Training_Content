@@ -1,13 +1,11 @@
 import streamlit as st
-import os
-import tempfile
 import datetime
 from docx import Document
 from PyPDF2 import PdfReader
 import re
 
 st.set_page_config(layout="wide")
-st.title("ðŸ“„ QREF Markdown Generator (Stage 1)")
+st.title(" QREF Markdown Generator (Corrected Version)")
 
 # === File upload ===
 uploaded_files = st.file_uploader("Upload PDF or DOCX files", accept_multiple_files=True, type=["pdf", "docx"])
@@ -21,6 +19,7 @@ def extract_text_from_docx(file):
     doc = Document(file)
     return "\n".join(p.text for p in doc.paragraphs)
 
+# Store extracted content
 document_texts = {}
 if uploaded_files:
     for file in uploaded_files:
@@ -42,13 +41,16 @@ if search_query and document_texts:
         if matches:
             matched_sections[filename] = "\n---\n".join(matches)
 
-# === Topic selection ===
 if matched_sections:
     selected_topic = st.selectbox("Select a matching document to build your QREF:", list(matched_sections.keys()))
 
-    def generate_qref_markdown(topic_title, matched_text):
-        today = datetime.date.today().strftime("%B %d, %Y")
-        qref_md = f"""### QREF: {topic_title}
+    if selected_topic:
+        matched_text = matched_sections[selected_topic]
+
+        # === Generate QREF Markdown ===
+        def generate_qref_markdown(topic_title, matched_text):
+            today = datetime.date.today().strftime("%B %d, %Y")
+            qref_md = f"""### QREF: {topic_title}
 
 **Application:** [App Name]  
 **Function:** [Function or Module]  
@@ -82,12 +84,9 @@ if matched_sections:
 
 - [Mention other relevant QREFs or tools.]
 """
-        return qref_md
+            return qref_md
 
-    if selected_topic:
-        matched_text = matched_sections[selected_topic]
         qref_md = generate_qref_markdown(selected_topic, matched_text)
-
         st.markdown("### QREF Preview")
         st.code(qref_md, language="markdown")
 
@@ -97,3 +96,6 @@ if matched_sections:
             file_name=f"QREF_{selected_topic}.md",
             mime="text/markdown"
         )
+
+elif search_query and not matched_sections:
+    st.warning("No matches found. Try a different keyword.")
