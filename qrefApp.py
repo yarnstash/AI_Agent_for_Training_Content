@@ -8,7 +8,7 @@ from docx.shared import Inches
 from io import BytesIO
 
 # âœ… Set page config FIRST
-st.set_page_config(layout="wide")
+st.set_page_config(layout="narrow")
 st.title("AI Training Content App QREF")
 
 openai.api_key = st.secrets["OPENAI_API_KEY"]
@@ -133,11 +133,6 @@ From the following documents:
                 clear_below_first_table(doc)
 
                 # Set margins: Top 0.5", Bottom 0.6", Left/Right 0.5"
-                # section = doc.sections[0]  # removed to preserve template margins
-                section.top_margin = Inches(0.5)
-                section.bottom_margin = Inches(0.6)
-                section.left_margin = Inches(0.5)
-                section.right_margin = Inches(0.5)
 
                 doc.add_paragraph("OVERVIEW", style=safe_style(doc, "IT Heading 1"))
                 doc.add_paragraph(overview, style=safe_style(doc, "IT Body Text"))
