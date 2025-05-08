@@ -1,3 +1,4 @@
+
 import streamlit as st
 import os
 import tempfile
@@ -25,13 +26,6 @@ def extract_text_from_docx(file_path):
     doc = Document(file_path)
     return "\n".join(p.text for p in doc.paragraphs if p.text.strip())
 
-def safe_style(doc, style_name, fallback="Normal"):
-    try:
-        _ = doc.styles[style_name]  # just verify existence
-        return style_name
-    except KeyError:
-        return fallback
-
 if uploaded_files:
     for uploaded_file in uploaded_files:
         suffix = ".pdf" if uploaded_file.name.endswith(".pdf") else ".docx"
@@ -39,7 +33,11 @@ if uploaded_files:
             tmp_file.write(uploaded_file.read())
             tmp_path = tmp_file.name
 
-        extracted_text = extract_text_from_pdf(tmp_path) if suffix == ".pdf" else extract_text_from_docx(tmp_path)
+        if suffix == ".pdf":
+            extracted_text = extract_text_from_pdf(tmp_path)
+        else:
+            extracted_text = extract_text_from_docx(tmp_path)
+
         document_chunks.append((uploaded_file.name, extracted_text))
 
     st.success("Files uploaded and content extracted.")
@@ -52,7 +50,8 @@ if uploaded_files:
 
 {combined_text}
 
-What topics are relevant to this query: {query}"""
+What topics are relevant to this query: {query}
+"""
             response = openai.chat.completions.create(
                 model="gpt-4.1-mini",
                 messages=[
@@ -76,7 +75,8 @@ if "search_topics" in st.session_state:
 
 From the following documents:
 
-{st.session_state.full_text}"""
+{st.session_state.full_text}
+"""
             content_response = openai.chat.completions.create(
                 model="gpt-4.1-mini",
                 messages=[
@@ -105,6 +105,13 @@ From the following documents:
             steps = "\n".join(body_lines).strip()
             selected_topic = ", ".join(selected)
             today = datetime.date.today().strftime("%B %d, %Y")
+
+            def safe_style(doc, style_name, fallback="Normal"):
+                try:
+                    doc.styles[style_name]
+                    return style_name
+                except KeyError:
+                    return fallback
 
             def clear_below_first_table(doc):
                 first_table = doc.tables[0]
@@ -135,20 +142,16 @@ From the following documents:
                 doc.add_paragraph("OVERVIEW", style=safe_style(doc, "IT Heading 1"))
                 doc.add_paragraph(overview, style=safe_style(doc, "IT Body Text"))
 
-                current_number = 1
                 for line in steps.strip().split("\n"):
                     line = line.strip()
                     if not line:
                         continue
                     if line.startswith("### "):
                         doc.add_paragraph(line.replace("###", "").strip(), style=safe_style(doc, "IT Heading 1"))
-                        current_number = 1  # reset step number
                     elif line.startswith("- "):
-                        doc.add_paragraph(f"{current_number}. {line.strip('- ').strip()}", style=safe_style(doc, "IT Number_1"))
-                        current_number += 1
+                        doc.add_paragraph(line.strip("- ").strip(), style=safe_style(doc, "IT Number_1"))
                     else:
-                        doc.add_paragraph(f"{current_number}. {line}", style=safe_style(doc, "IT Number_1"))
-                        current_number += 1
+                        doc.add_paragraph(line, style=safe_style(doc, "IT Number_1"))
 
                 doc.add_paragraph("TIPS & NOTES", style=safe_style(doc, "IT Heading 1"))
                 for tip in tips:
