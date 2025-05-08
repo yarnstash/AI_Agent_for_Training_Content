@@ -65,7 +65,7 @@ What topics are relevant to this query: {query}
                 ]
             )
             topics = response.choices[0].message.content
-            topic_lines = [line.strip("â€¢-1234567890. ") for line in topics.strip().splitlines() if line.strip()]
+            topic_lines = [line.strip("Ã¢â‚¬Â¢-1234567890. ") for line in topics.strip().splitlines() if line.strip()]
             st.session_state.search_topics = topic_lines
             st.session_state.full_text = combined_text
 
@@ -91,34 +91,30 @@ From the following documents:
             )
             st.session_state.selected_text = content_response.choices[0].message.content
             st.success("Content extracted.")
-# === Generate QREF Markdown ===
+
+        # === Generate QREF Markdown ===
+        full_text = st.session_state.selected_text.strip()
+        lines = full_text.splitlines()
+
+        overview_lines = []
+        body_lines = []
+
+        for i, line in enumerate(lines):
+            if line.strip().startswith("### "):  # first heading, assume body starts here
+                overview_lines = lines[:i]
+                body_lines = lines[i:]
+                break
+        else:
+            overview_lines = lines[:2]
+            body_lines = lines[2:]
+
+        overview = " ".join(overview_lines).strip()
+        steps = "\n".join(body_lines).strip()
+
         selected_topic = ", ".join(selected)
-        matched_text = st.session_state.selected_text
         today = datetime.date.today().strftime("%B %d, %Y")
 
-        # Parse full output into OVERVIEW + the rest
-full_text = st.session_state.selected_text.strip()
-lines = full_text.splitlines()
-
-overview_lines = []
-body_lines = []
-
-for i, line in enumerate(lines):
-    if line.strip().startswith("### "):  # first heading, assume body starts here
-        overview_lines = lines[:i]
-        body_lines = lines[i:]
-        break
-else:
-    overview_lines = lines[:2]
-    body_lines = lines[2:]
-
-overview = " ".join(overview_lines).strip()
-steps = "\n".join(body_lines).strip()
-
-selected_topic = ", ".join(selected)
-today = datetime.date.today().strftime("%B %d, %Y")
-
-qref_md = f"""### QREF: {selected_topic}
+        qref_md = f"""### QREF: {selected_topic}
 
 **Application:** [App Name]  
 **Function:** [Function or Module]  
@@ -148,6 +144,7 @@ qref_md = f"""### QREF: {selected_topic}
 
 - [Mention other relevant QREFs or tools.]
 """
+
         st.markdown("### QREF Preview")
         st.code(qref_md, language="markdown")
 
