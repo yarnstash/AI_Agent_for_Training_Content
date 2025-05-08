@@ -4,10 +4,10 @@ import tempfile
 import openai
 import datetime
 from docx import Document
-from PyPDF2 import PdfReader
-import zipfile
-import io
-import re
+from docx.shared import Inches
+from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
+from io import BytesIO
+from docx.shared import Pt
 
 openai.api_key = st.secrets["OPENAI_API_KEY"]
 
@@ -17,19 +17,17 @@ st.title("AI Training Content App QREF")
 uploaded_files = st.file_uploader("Upload one or more source documents (PDF or DOCX)", type=["pdf", "docx"], accept_multiple_files=True)
 
 selected_sections = []
-all_sections = []
 document_chunks = []
 
 def extract_text_from_pdf(file_path):
+    from PyPDF2 import PdfReader
     reader = PdfReader(file_path)
-    text = ""
-    for page in reader.pages:
-        text += page.extract_text() or ""
-    return text
+    return "\n".join(page.extract_text() or "" for page in reader.pages)
 
 def extract_text_from_docx(file_path):
+    from docx import Document
     doc = Document(file_path)
-    return " ".join(p.text for p in doc.paragraphs if p.text.strip())
+    return "\n".join(p.text for p in doc.paragraphs if p.text.strip())
 
 if uploaded_files:
     for uploaded_file in uploaded_files:
@@ -65,7 +63,7 @@ What topics are relevant to this query: {query}
                 ]
             )
             topics = response.choices[0].message.content
-            topic_lines = [line.strip("Ã¢â‚¬Â¢-1234567890. ") for line in topics.strip().splitlines() if line.strip()]
+            topic_lines = [line.strip("â€¢-1234567890. ") for line in topics.strip().splitlines() if line.strip()]
             st.session_state.search_topics = topic_lines
             st.session_state.full_text = combined_text
 
@@ -92,65 +90,97 @@ From the following documents:
             st.session_state.selected_text = content_response.choices[0].message.content
             st.success("Content extracted.")
 
-        # === Generate QREF Markdown ===
-        full_text = st.session_state.selected_text.strip()
-        lines = full_text.splitlines()
+        if st.button("Generate QREF"):
+            # Parse the response content
+            full_text = st.session_state.selected_text.strip()
+            lines = full_text.splitlines()
+            overview_lines, body_lines = [], []
+            for i, line in enumerate(lines):
+                if line.strip().startswith("### "):
+                    overview_lines = lines[:i]
+                    body_lines = lines[i:]
+                    break
+            else:
+                overview_lines = lines[:2]
+                body_lines = lines[2:]
 
-        overview_lines = []
-        body_lines = []
+            overview = " ".join(overview_lines).strip()
+            steps = "\n".join(body_lines).strip()
 
-        for i, line in enumerate(lines):
-            if line.strip().startswith("### "):  # first heading, assume body starts here
-                overview_lines = lines[:i]
-                body_lines = lines[i:]
-                break
-        else:
-            overview_lines = lines[:2]
-            body_lines = lines[2:]
+            # Metadata
+            selected_topic = ", ".join(selected)
+            today = datetime.date.today().strftime("%B %d, %Y")
 
-        overview = " ".join(overview_lines).strip()
-        steps = "\n".join(body_lines).strip()
+            # === Create Word Doc ===
+            def create_qref_docx(app, function, audience, version, overview, steps, tips, related, logo_path=None):
+                doc = Document()
 
-        selected_topic = ", ".join(selected)
-        today = datetime.date.today().strftime("%B %d, %Y")
+                # Add logo (if you have a logo image)
+                if logo_path:
+                    header = doc.sections[0].header
+                    paragraph = header.paragraphs[0]
+                    run = paragraph.add_run()
+                    run.add_picture(logo_path, width=Inches(1.2))
 
-        qref_md = f"""### QREF: {selected_topic}
+                # Header Table
+                table = doc.add_table(rows=2, cols=4)
+                table.style = 'Table Grid'
+                hdr_cells = table.rows[0].cells
+                hdr_cells[0].text = "Application"
+                hdr_cells[1].text = "Function"
+                hdr_cells[2].text = "Audience"
+                hdr_cells[3].text = "Version"
 
-**Application:** [App Name]  
-**Function:** [Function or Module]  
-**Audience:** [User Type]  
-**Document Version:** {today}
+                val_cells = table.rows[1].cells
+                val_cells[0].text = app
+                val_cells[1].text = function
+                val_cells[2].text = audience
+                val_cells[3].text = version
 
----
+                doc.add_paragraph("")
 
-#### OVERVIEW  
-{overview}
+                # Content Sections
+                doc.add_paragraph("OVERVIEW", style="IT Heading 1")
+                doc.add_paragraph(overview, style="IT Step Text")
 
----
+                doc.add_paragraph("STEPS", style="IT Heading 1")
+                for line in steps.strip().split("\n"):
+                    line = line.strip()
+                    if not line:
+                        continue
+                    if line.startswith("### "):
+                        doc.add_paragraph(line.replace("###", "").strip(), style="IT Numbered Step")
+                    elif line.startswith("- "):
+                        doc.add_paragraph(line.strip("- ").strip(), style="IT Step Text")
+                    else:
+                        doc.add_paragraph(line, style="IT Step Text")
 
-#### STEPS
+                doc.add_paragraph("TIPS & NOTES", style="IT Heading 1")
+                doc.add_paragraph("- [Add any helpful tips or reminders.]", style="IT Notes")
 
-{steps}
+                doc.add_paragraph("RELATED FEATURES", style="IT Heading 1")
+                doc.add_paragraph("- [Mention other relevant QREFs or tools.]", style="IT Bullet")
 
----
+                output = BytesIO()
+                doc.save(output)
+                output.seek(0)
+                return output
 
-#### TIPS & NOTES
+            docx_file = create_qref_docx(
+                app="[App Name]",
+                function="[Function or Module]",
+                audience="[User Type]",
+                version=today,
+                overview=overview,
+                steps=steps,
+                tips=["[Add any helpful tips or reminders.]"],
+                related=["[Mention other relevant QREFs or tools.]"],
+                logo_path=None  # Add logo path here if available
+            )
 
-- [Add any helpful tips or reminders.]
-
----
-
-#### RELATED FEATURES
-
-- [Mention other relevant QREFs or tools.]
-"""
-
-        st.markdown("### QREF Preview")
-        st.code(qref_md, language="markdown")
-
-        st.download_button(
-            label="Download QREF Markdown",
-            data=qref_md,
-            file_name=f"QREF_{selected_topic}.md",
-            mime="text/markdown"
-        )
+            st.download_button(
+                label="Download QREF Word Document",
+                data=docx_file,
+                file_name=f"QREF_{selected_topic}.docx",
+                mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            )
