@@ -7,6 +7,9 @@ import datetime
 from docx import Document
 from docx.shared import Inches
 from io import BytesIO
+import builtins
+st.write = lambda *args, **kwargs: None
+builtins.print = lambda *args, **kwargs: None
 
 st.set_page_config(layout="wide")
 st.title("AI Training Content App QREF")
