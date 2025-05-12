@@ -134,14 +134,7 @@ From the following documents:
                 doc = Document(template_path)
                 clear_below_first_table(doc)
 
-                if len(doc.sections) > 0:
-                    section = doc.sections[0]
-                    section.top_margin = Inches(0.5)
-                    section.bottom_margin = Inches(0.5)
-                    section.left_margin = Inches(0.5)
-                    section.right_margin = Inches(0.5)
-                else:
-                    raise ValueError("Template is missing section properties. Margins cannot be set.")
+                
 
                 doc.add_paragraph("OVERVIEW", style=safe_style(doc, "IT Heading 1"))
                 doc.add_paragraph(overview, style=safe_style(doc, "IT Body Text"))
